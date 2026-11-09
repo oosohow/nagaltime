@@ -32,7 +32,7 @@ function toHHMM(minutes) {
     if (minutes < 0) {
         minutes += 1440; // 음수면 하루(1440분)를 더함
     } else if (minutes >= 1440) {
-        minutes -= 1440; // 1440 이상이면 하루를 �빼줌
+        minutes -= 1440; // 1440 이상이면 하루를 빼줌
     }
 
     const hours = Math.floor(minutes / 60);
