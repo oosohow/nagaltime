@@ -1,5 +1,19 @@
 // 화면 표시와 사용자 이벤트를 담당하는 파일입니다.
 
+const UI_DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const UI_DAY_LABELS = {
+    mon: '월요일',
+    tue: '화요일',
+    wed: '수요일',
+    thu: '목요일',
+    fri: '금요일',
+    sat: '토요일',
+    sun: '일요일'
+};
+
+function renderPlan() {
+}
+
 function setOptions(select, values, placeholder) {
     select.replaceChildren();
     const firstOption = document.createElement('option');
@@ -45,9 +59,58 @@ function renderRoutes() {
         deleteButton.addEventListener('click', () => {
             deleteRoute(route.id);
             renderRoutes();
+            renderWeekInputs();
         });
         card.append(title, detail, timings, deleteButton);
         list.appendChild(card);
+    });
+}
+
+function renderWeekInputs() {
+    const container = document.getElementById('week-inputs');
+    const emptyMessage = document.getElementById('week-empty-message');
+    const routes = loadRoutes();
+    const week = loadWeek();
+
+    container.replaceChildren();
+    emptyMessage.hidden = routes.length > 0;
+    if (routes.length === 0) return;
+
+    UI_DAY_KEYS.forEach((dayKey) => {
+        const row = document.createElement('div');
+        row.className = 'week-row';
+
+        const label = document.createElement('label');
+        label.textContent = UI_DAY_LABELS[dayKey];
+
+        const routeSelect = document.createElement('select');
+        routeSelect.id = `week-route-${dayKey}`;
+        routeSelect.appendChild(new Option('안 감', ''));
+        routes.forEach((route) => {
+            routeSelect.appendChild(new Option(route.name, route.id));
+        });
+
+        const arriveInput = document.createElement('input');
+        arriveInput.type = 'time';
+        arriveInput.id = `week-arrive-${dayKey}`;
+
+        const savedPlan = week[dayKey];
+        routeSelect.value = savedPlan ? savedPlan.routeId : '';
+        arriveInput.value = savedPlan ? savedPlan.arrive : '';
+
+        const saveDay = () => {
+            const nextWeek = loadWeek();
+            nextWeek[dayKey] = routeSelect.value
+                ? { routeId: routeSelect.value, arrive: arriveInput.value }
+                : null;
+            saveWeek(nextWeek);
+            renderPlan();
+        };
+
+        routeSelect.addEventListener('change', saveDay);
+        arriveInput.addEventListener('change', saveDay);
+        row.append(label, routeSelect, arriveInput);
+        container.appendChild(row);
     });
 }
 
@@ -150,6 +213,7 @@ function handleRouteSubmit(event) {
     setOptions(document.getElementById('route-direction'), [], '방향을 선택하세요');
     toggleCustomTimes();
     renderRoutes();
+    renderWeekInputs();
 }
 
 function bindRouteEvents() {
