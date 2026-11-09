@@ -12,6 +12,13 @@ const UI_DAY_LABELS = {
 };
 let selectedAlarmDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 
+function handleIcsDownload() {
+    const routes = loadRoutes();
+    const week = loadWeek();
+    const plans = calcWeek(routes, week, []);
+    downloadIcs(buildIcs(plans, routes));
+}
+
 function renderPlan() {
     const grid = document.getElementById('plan-grid');
     const routes = loadRoutes();
@@ -36,13 +43,6 @@ function renderPlan() {
             card.appendChild(message);
             grid.appendChild(card);
             return;
-        }
-
-        function handleIcsDownload() {
-            const routes = loadRoutes();
-            const week = loadWeek();
-            const plans = calcWeek(routes, week, []);
-            downloadIcs(buildIcs(plans, routes));
         }
 
         const result = plans[dayKey];
