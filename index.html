@@ -10,6 +10,66 @@
   <main>
     <section>
       <h1>경로 등록</h1>
+      <form id="route-form">
+        <label>
+          이름
+          <input id="route-name" name="name" type="text" placeholder="예: 학교">
+          <span class="field-error" id="name-error"></span>
+        </label>
+
+        <label>
+          <input id="custom-times" name="useCustomTimes" type="checkbox">
+          시간표가 없어요
+        </label>
+
+        <div id="timetable-fields">
+          <label>
+            노선
+            <select id="route-line" name="line"></select>
+            <span class="field-error" id="line-error"></span>
+          </label>
+          <label>
+            역
+            <select id="route-station" name="station" disabled></select>
+            <span class="field-error" id="station-error"></span>
+          </label>
+          <label>
+            방향
+            <select id="route-direction" name="direction" disabled></select>
+            <span class="field-error" id="direction-error"></span>
+          </label>
+        </div>
+
+        <label id="custom-times-field" hidden>
+          열차 시각
+          <textarea id="custom-times-input" name="customTimes" placeholder="07:47, 07:57"></textarea>
+          <span class="field-error" id="custom-times-error"></span>
+        </label>
+
+        <label>
+          걷는 시간(분)
+          <input id="walk-min" name="walkMin" type="number" min="0">
+          <span class="field-error" id="walk-error"></span>
+        </label>
+        <label>
+          탑승 후 이동 시간(분)
+          <input id="ride-min" name="rideMin" type="number" min="0">
+          <small>갈아타는 경우 환승과 마지막 도보까지 모두 포함</small>
+          <span class="field-error" id="ride-error"></span>
+        </label>
+        <label>
+          준비 시간(분)
+          <input id="prep-min" name="prepMin" type="number" min="0" value="60">
+          <span class="field-error" id="prep-error"></span>
+        </label>
+        <label>
+          최소 여유(분)
+          <input id="slack-min" name="slackMin" type="number" min="0" value="10">
+          <span class="field-error" id="slack-error"></span>
+        </label>
+        <button type="submit">저장</button>
+      </form>
+      <div id="routes-list"></div>
     </section>
     <section>
       <h2>요일별 도착 시간 입력</h2>

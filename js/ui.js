@@ -1,1 +1,167 @@
 // 화면 표시와 사용자 이벤트를 담당하는 파일입니다.
+
+function setOptions(select, values, placeholder) {
+    select.replaceChildren();
+    const firstOption = document.createElement('option');
+    firstOption.value = '';
+    firstOption.textContent = placeholder;
+    select.appendChild(firstOption);
+    values.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    });
+    select.disabled = values.length === 0;
+}
+
+function clearErrors() {
+    document.querySelectorAll('.field-error').forEach((element) => {
+        element.textContent = '';
+    });
+}
+
+function showError(id, message) {
+    document.getElementById(id).textContent = message;
+}
+
+function renderRoutes() {
+    const list = document.getElementById('routes-list');
+    list.replaceChildren();
+    loadRoutes().forEach((route) => {
+        const card = document.createElement('article');
+        const title = document.createElement('h3');
+        title.textContent = route.name;
+        const detail = document.createElement('p');
+        detail.textContent = route.customTimes
+            ? `직접 입력: ${route.customTimes.join(', ')}`
+            : `${route.line} · ${route.station} · ${route.direction}`;
+        const timings = document.createElement('p');
+        timings.textContent =
+            `걷기 ${route.walkMin}분 · 이동 ${route.rideMin}분 · 준비 ${route.prepMin}분 · 여유 ${route.slackMin}분`;
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = '삭제';
+        deleteButton.addEventListener('click', () => {
+            deleteRoute(route.id);
+            renderRoutes();
+        });
+        card.append(title, detail, timings, deleteButton);
+        list.appendChild(card);
+    });
+}
+
+function updateStationOptions() {
+    const line = document.getElementById('route-line').value;
+    const stationSelect = document.getElementById('route-station');
+    const directionSelect = document.getElementById('route-direction');
+    setOptions(stationSelect, line ? getStations(line) : [], '역을 선택하세요');
+    setOptions(directionSelect, [], '방향을 선택하세요');
+}
+
+function updateDirectionOptions() {
+    const line = document.getElementById('route-line').value;
+    const station = document.getElementById('route-station').value;
+    setOptions(
+        document.getElementById('route-direction'),
+        line && station ? getDirections(line, station) : [],
+        '방향을 선택하세요'
+    );
+}
+
+function toggleCustomTimes() {
+    const checked = document.getElementById('custom-times').checked;
+    document.getElementById('timetable-fields').hidden = checked;
+    document.getElementById('custom-times-field').hidden = !checked;
+}
+
+function readNonNegativeNumber(inputId, errorId, label) {
+    const rawValue = document.getElementById(inputId).value.trim();
+    const value = Number(rawValue);
+    if (!rawValue || !Number.isFinite(value) || value < 0) {
+        showError(errorId, `${label}은(는) 0 이상의 숫자여야 합니다.`);
+        return null;
+    }
+    return value;
+}
+
+function handleRouteSubmit(event) {
+    event.preventDefault();
+    clearErrors();
+    const custom = document.getElementById('custom-times').checked;
+    const name = document.getElementById('route-name').value.trim();
+    const line = document.getElementById('route-line').value;
+    const station = document.getElementById('route-station').value;
+    const direction = document.getElementById('route-direction').value;
+    let valid = true;
+
+    if (!name) {
+        showError('name-error', '이름을 입력해 주세요.');
+        valid = false;
+    }
+    if (!custom && !line) {
+        showError('line-error', '노선을 선택해 주세요.');
+        valid = false;
+    }
+    if (!custom && !station) {
+        showError('station-error', '역을 선택해 주세요.');
+        valid = false;
+    }
+    if (!custom && !direction) {
+        showError('direction-error', '방향을 선택해 주세요.');
+        valid = false;
+    }
+
+    let customTimes = null;
+    if (custom) {
+        const parsed = parseTimeList(document.getElementById('custom-times-input').value);
+        if (!parsed.ok) {
+            showError('custom-times-error', parsed.message);
+            valid = false;
+        } else {
+            customTimes = parsed.value;
+        }
+    }
+
+    const values = [
+        ['walk-min', 'walk-error', '걷는 시간'],
+        ['ride-min', 'ride-error', '탑승 후 이동 시간'],
+        ['prep-min', 'prep-error', '준비 시간'],
+        ['slack-min', 'slack-error', '최소 여유']
+    ].map(([inputId, errorId, label]) => readNonNegativeNumber(inputId, errorId, label));
+    if (values.some((value) => value === null)) valid = false;
+    if (!valid) return;
+
+    addRoute({
+        name,
+        line: custom ? null : line,
+        station: custom ? null : station,
+        direction: custom ? null : direction,
+        walkMin: values[0],
+        rideMin: values[1],
+        prepMin: values[2],
+        slackMin: values[3],
+        customTimes
+    });
+    event.target.reset();
+    document.getElementById('prep-min').value = 60;
+    document.getElementById('slack-min').value = 10;
+    setOptions(document.getElementById('route-station'), [], '역을 선택하세요');
+    setOptions(document.getElementById('route-direction'), [], '방향을 선택하세요');
+    toggleCustomTimes();
+    renderRoutes();
+}
+
+function bindRouteEvents() {
+    setOptions(document.getElementById('route-line'), getLines(), '노선을 선택하세요');
+    setOptions(document.getElementById('route-station'), [], '역을 선택하세요');
+    setOptions(document.getElementById('route-direction'), [], '방향을 선택하세요');
+    document.getElementById('route-line').addEventListener('change', updateStationOptions);
+    document.getElementById('route-station').addEventListener('change', updateDirectionOptions);
+    document.getElementById('custom-times').addEventListener('change', toggleCustomTimes);
+    document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
+    toggleCustomTimes();
+    renderRoutes();
+}
+
+bindRouteEvents();
