@@ -105,6 +105,28 @@ small {
   margin: 8px 0;
 }
 
+.trip-flow {
+  border-left: 2px solid var(--color-border);
+  margin: 12px 0;
+  padding-left: 12px;
+}
+
+.trip-flow p {
+  margin: 10px 0;
+}
+
+.trip-alternatives {
+  border-top: 1px solid var(--color-border);
+  color: #6b7280;
+  font-size: 0.9em;
+  margin-top: 16px;
+  padding-top: 10px;
+}
+
+.trip-alternatives p {
+  margin: 6px 0;
+}
+
 .plan-error {
   color: #dc2626;
 }

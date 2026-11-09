@@ -27,6 +27,53 @@ function renderPlanError(card, message) {
 }
 
 function renderPlanDetails(card, result, route) {
+    if (route.type === 'trip') {
+        const flow = document.createElement('div');
+        flow.className = 'trip-flow';
+
+        const addFlowItem = (text) => {
+            const item = document.createElement('p');
+            item.textContent = text;
+            flow.appendChild(item);
+        };
+
+        addFlowItem(`${toHHMM(result.wake)} 일어나기`);
+        addFlowItem(`${toHHMM(result.depart)} 집에서 출발`);
+
+        result.legs.forEach((leg, index) => {
+            if (index > 0) {
+                const previousLeg = result.legs[index - 1];
+                addFlowItem(
+                    `${toHHMM(previousLeg.arr)} ${previousLeg.to}에서 갈아타기 → ` +
+                    `${toHHMM(leg.dep)} ${leg.line} (${leg.no})`
+                );
+            } else {
+                addFlowItem(`${toHHMM(leg.dep)} ${leg.from} ${leg.line} (${leg.no})`);
+            }
+        });
+
+        const lastLeg = result.legs[result.legs.length - 1];
+        addFlowItem(`${toHHMM(lastLeg.arr)} ${lastLeg.to} 도착`);
+        addFlowItem(`${toHHMM(result.arriveEst)} 목적지 도착 (여유 ${result.slack}분)`);
+        card.appendChild(flow);
+
+        if (result.alternatives && result.alternatives.length > 0) {
+            const alternatives = document.createElement('div');
+            alternatives.className = 'trip-alternatives';
+            const heading = document.createElement('strong');
+            heading.textContent = '다른 열차';
+            alternatives.appendChild(heading);
+            result.alternatives.forEach((alternative) => {
+                const firstLeg = alternative.legs[0];
+                const item = document.createElement('p');
+                item.textContent = `${toHHMM(alternative.dep)} 출발 · ${firstLeg.no} (${firstLeg.line})`;
+                alternatives.appendChild(item);
+            });
+            card.appendChild(alternatives);
+        }
+        return;
+    }
+
     const destination = document.createElement('p');
     destination.textContent = `목적지: ${route.name}`;
     card.appendChild(destination);
