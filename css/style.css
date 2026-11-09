@@ -109,6 +109,37 @@ small {
   color: #dc2626;
 }
 
+#alarm-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.alarm-tab {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.alarm-tab.active {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+#alarm-list {
+  border: 1px solid var(--color-border);
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.alarm-item {
+  margin: 8px 0;
+}
+
 .prev-day,
 .tight {
   color: var(--color-warning);

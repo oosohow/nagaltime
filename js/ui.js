@@ -10,6 +10,7 @@ const UI_DAY_LABELS = {
     sat: '토요일',
     sun: '일요일'
 };
+let selectedAlarmDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 
 function renderPlan() {
     const grid = document.getElementById('plan-grid');
@@ -70,6 +71,49 @@ function renderPlan() {
             card.appendChild(detail);
         });
         grid.appendChild(card);
+    });
+    renderAlarmList(routes, week, plans);
+}
+
+function renderAlarmList(routes, week, plans) {
+    const tabs = document.getElementById('alarm-tabs');
+    const list = document.getElementById('alarm-list');
+    tabs.replaceChildren();
+    list.replaceChildren();
+
+    UI_DAY_KEYS.forEach((dayKey) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.textContent = UI_DAY_LABELS[dayKey];
+        tab.className = `alarm-tab${dayKey === selectedAlarmDayKey ? ' active' : ''}`;
+        tab.setAttribute('aria-selected', dayKey === selectedAlarmDayKey ? 'true' : 'false');
+        tab.addEventListener('click', () => {
+            selectedAlarmDayKey = dayKey;
+            renderAlarmList(routes, week, plans);
+        });
+        tabs.appendChild(tab);
+    });
+
+    const dayPlan = week[selectedAlarmDayKey];
+    const route = dayPlan && routes.find((item) => item.id === dayPlan.routeId);
+    const result = plans[selectedAlarmDayKey];
+    if (!dayPlan || !route || !result || !result.ok) {
+        const empty = document.createElement('p');
+        empty.textContent = '알람 없음';
+        list.appendChild(empty);
+        return;
+    }
+
+    const alarmLabel = `${toHHMM(result.train)} 열차 · ${dayPlan.arrive} 도착`;
+    [
+        ['기상', result.wake],
+        ['출발 알림', result.alert],
+        ['출발', result.depart]
+    ].sort((first, second) => first[1] - second[1]).forEach(([name, minute]) => {
+        const alarm = document.createElement('p');
+        alarm.className = 'alarm-item';
+        alarm.textContent = `${toHHMM(minute)} ${name} · ${alarmLabel}`;
+        list.appendChild(alarm);
     });
 }
 
