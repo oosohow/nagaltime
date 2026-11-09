@@ -303,7 +303,7 @@ function handleRouteSubmit(event) {
             showError('custom-times-error', parsed.message);
             valid = false;
         } else {
-            customTimes = parsed.value;
+            customTimes = parsed.value.map((minute) => toHHMM(minute));
         }
     }
 
