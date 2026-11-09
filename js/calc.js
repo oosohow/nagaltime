@@ -108,3 +108,97 @@ function calcWeek(routes, week, holidays) {
 
     return results;
 }
+
+// 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
+function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
+    const stationIndex = new Map();
+    const tripList = Array.isArray(trips) ? trips : [];
+
+    tripList.forEach((trip) => {
+        trip.stops.forEach(([station], index) => {
+            if (!stationIndex.has(station)) stationIndex.set(station, []);
+            stationIndex.get(station).push({ trip, index });
+        });
+    });
+
+    const fromTrips = stationIndex.get(fromStation) || [];
+    const results = [];
+
+    fromTrips.forEach(({ trip: firstTrip, index: fromIndex }) => {
+        const fromStop = firstTrip.stops[fromIndex];
+        const directToIndex = firstTrip.stops.findIndex(
+            ([station], index) => index > fromIndex && station === toStation
+        );
+        if (directToIndex !== -1) {
+            const toStop = firstTrip.stops[directToIndex];
+            if (toStop[1] <= deadlineMin) {
+                results.push({
+                    legs: [{
+                        line: firstTrip.line,
+                        no: firstTrip.no,
+                        from: fromStation,
+                        dep: fromStop[1],
+                        to: toStation,
+                        arr: toStop[1]
+                    }],
+                    dep: fromStop[1],
+                    arr: toStop[1]
+                });
+            }
+        }
+
+        const transferStations = new Set(
+            firstTrip.stops
+                .slice(fromIndex + 1)
+                .map(([station]) => station)
+        );
+        transferStations.forEach((transferStation) => {
+            const transferIndex = firstTrip.stops.findIndex(
+                ([station], index) => index > fromIndex && station === transferStation
+            );
+            const transferArrival = firstTrip.stops[transferIndex][1];
+            const nextTrips = stationIndex.get(transferStation) || [];
+
+            nextTrips.forEach(({ trip: secondTrip, index: transferDepartureIndex }) => {
+                if (secondTrip === firstTrip) return;
+                const transferDeparture = secondTrip.stops[transferDepartureIndex][1];
+                if (transferDeparture < transferArrival + transferMin) return;
+
+                const destinationIndex = secondTrip.stops.findIndex(
+                    ([station], index) => index > transferDepartureIndex && station === toStation
+                );
+                if (destinationIndex === -1) return;
+
+                const destination = secondTrip.stops[destinationIndex];
+                if (destination[1] > deadlineMin) return;
+
+                results.push({
+                    legs: [
+                        {
+                            line: firstTrip.line,
+                            no: firstTrip.no,
+                            from: fromStation,
+                            dep: fromStop[1],
+                            to: transferStation,
+                            arr: transferArrival
+                        },
+                        {
+                            line: secondTrip.line,
+                            no: secondTrip.no,
+                            from: transferStation,
+                            dep: transferDeparture,
+                            to: toStation,
+                            arr: destination[1]
+                        }
+                    ],
+                    dep: fromStop[1],
+                    arr: destination[1]
+                });
+            });
+        });
+    });
+
+    return results
+        .sort((first, second) => second.dep - first.dep || second.arr - first.arr)
+        .slice(0, 3);
+}

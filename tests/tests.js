@@ -83,6 +83,46 @@ test(
     { saturday: 'sat', holiday: 'sun' }
 );
 
+test(
+    '8. 직행·환승 열차 추천',
+    (() => {
+        const trips = findTrips(TRIPS.weekday, '가좌', '온수', 523, 4);
+        return {
+            dep: trips[0].dep,
+            arr: trips[0].arr,
+            legs: trips[0].legs.map((leg) => [leg.no, leg.dep, leg.arr])
+        };
+    })(),
+    {
+        dep: 477,
+        arr: 522,
+        legs: [['K5301', 477, 490], ['K47', 496, 522]]
+    }
+);
+
+test(
+    '9. 환승 시간이 부족한 조합 제외',
+    findTrips([
+        {
+            no: 'A1',
+            line: 'A',
+            stops: [['출발', 100], ['환승', 110]]
+        },
+        {
+            no: 'B1',
+            line: 'B',
+            stops: [['환승', 112], ['도착', 120]]
+        }
+    ], '출발', '도착', 130, 4).length,
+    0
+);
+
+test(
+    '10. 추천 열차 없음',
+    findTrips(TRIPS.weekday, '없는 역', '온수', 523, 4),
+    []
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
