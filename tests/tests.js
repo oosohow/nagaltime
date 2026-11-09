@@ -123,6 +123,27 @@ test(
     []
 );
 
+test(
+    '11. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
+    (() => {
+        const ics = buildIcs({
+            mon: {
+                ok: true,
+                train: 477,
+                wake: 390,
+                alert: 460,
+                prevDay: false
+            }
+        }, []);
+        return {
+            wake: ics.includes('SUMMARY:기상 · 07:57 열차'),
+            alert: ics.includes('SUMMARY:출발 알림 · 07:57 열차'),
+            alarms: (ics.match(/BEGIN:VALARM/g) || []).length
+        };
+    })(),
+    { wake: true, alert: true, alarms: 2 }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;

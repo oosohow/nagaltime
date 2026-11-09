@@ -58,10 +58,34 @@ function formatUtcStamp(date) {
     return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
+function addEvent(lines, dayKey, recurrenceDayKey, plan, date, minute, title, suffix) {
+    const start = formatIcsDateTime(date, minute);
+    const endMinute = minute + 10;
+    const end = formatIcsDateTime(
+        addMinutesToDate(date, endMinute),
+        endMinute % 1440
+    );
+    const escapedTitle = escapeIcsText(title);
+    lines.push(
+        'BEGIN:VEVENT',
+        `UID:nagalsigan-${dayKey}-${suffix}-${plan.train}@nagalsigan`,
+        `DTSTAMP:${formatUtcStamp(new Date())}`,
+        `DTSTART;TZID=Asia/Seoul:${start}`,
+        `DTEND;TZID=Asia/Seoul:${end}`,
+        `SUMMARY:${escapedTitle}`,
+        `RRULE:FREQ=WEEKLY;BYDAY=${ICS_BY_DAY[recurrenceDayKey]}`,
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'TRIGGER:PT0M',
+        `DESCRIPTION:${escapedTitle}`,
+        'END:VALARM',
+        'END:VEVENT'
+    );
+}
+
 // 요일별 계산 결과와 경로 목록을 받아 반복 출발 알림용 iCalendar 문자열을 반환합니다.
 function buildIcs(weekPlans, routes) {
     const now = new Date();
-    const stamp = formatUtcStamp(now);
     const lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
@@ -74,25 +98,33 @@ function buildIcs(weekPlans, routes) {
         const plan = weekPlans && weekPlans[dayKey];
         if (!plan || !plan.ok) return;
 
-        const date = getNextWeekday(dayKey, now);
-        const start = formatIcsDateTime(date, plan.alert);
-        const end = formatIcsDateTime(addMinutesToDate(date, plan.alert + 10), (plan.alert + 10) % 1440);
         const trainText = toHHMM(plan.train);
-        const title = `출발 알림 · ${trainText} 열차`;
-        lines.push(
-            'BEGIN:VEVENT',
-            `UID:nagalsigan-${dayKey}-${plan.train}@nagalsigan`,
-            `DTSTAMP:${stamp}`,
-            `DTSTART;TZID=Asia/Seoul:${start}`,
-            `DTEND;TZID=Asia/Seoul:${end}`,
-            `SUMMARY:${escapeIcsText(title)}`,
-            `RRULE:FREQ=WEEKLY;BYDAY=${ICS_BY_DAY[dayKey]}`,
-            'BEGIN:VALARM',
-            'ACTION:DISPLAY',
-            'TRIGGER:PT0M',
-            `DESCRIPTION:${escapeIcsText(title)}`,
-            'END:VALARM',
-            'END:VEVENT'
+        const departureDate = getNextWeekday(dayKey, now);
+        const wakeDate = plan.prevDay
+            ? addMinutesToDate(departureDate, -1440)
+            : departureDate;
+        const wakeDayKey = plan.prevDay
+            ? ICS_DAY_KEYS[(ICS_DAY_KEYS.indexOf(dayKey) + 6) % 7]
+            : dayKey;
+        addEvent(
+            lines,
+            dayKey,
+            wakeDayKey,
+            plan,
+            wakeDate,
+            plan.wake,
+            `기상 · ${trainText} 열차`,
+            'wake'
+        );
+        addEvent(
+            lines,
+            dayKey,
+            dayKey,
+            plan,
+            departureDate,
+            plan.alert,
+            `출발 알림 · ${trainText} 열차`,
+            'alert'
         );
     });
 
