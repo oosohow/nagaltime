@@ -18,6 +18,14 @@
         </label>
 
         <label>
+          등록 방식
+          <select id="route-type" name="type">
+            <option value="timetable">시간표 선택</option>
+            <option value="trip">열차 추천</option>
+          </select>
+        </label>
+
+        <label id="custom-times-toggle">
           <input id="custom-times" name="useCustomTimes" type="checkbox">
           시간표가 없어요
         </label>
@@ -46,6 +54,49 @@
           <span class="field-error" id="custom-times-error"></span>
         </label>
 
+        <div id="trip-fields" hidden>
+          <label>
+            출발역
+            <input id="trip-from" name="fromStation" list="trip-stations" autocomplete="off">
+            <span class="field-error" id="trip-from-error"></span>
+          </label>
+          <label>
+            도착역
+            <input id="trip-to" name="toStation" list="trip-stations" autocomplete="off">
+            <span class="field-error" id="trip-to-error"></span>
+          </label>
+          <datalist id="trip-stations"></datalist>
+          <label>
+            집에서 출발역까지(분)
+            <input id="trip-walk-min" name="tripWalkMin" type="number" min="0">
+            <span class="field-error" id="trip-walk-error"></span>
+          </label>
+          <label>
+            도착역에서 목적지까지(분)
+            <input id="trip-last-walk-min" name="lastWalkMin" type="number" min="0">
+            <span class="field-error" id="trip-last-walk-error"></span>
+          </label>
+          <label>
+            일어나서 나가기까지(분)
+            <input id="trip-prep-min" name="tripPrepMin" type="number" min="0" value="60">
+            <span class="field-error" id="trip-prep-error"></span>
+          </label>
+          <details>
+            <summary>더 보기</summary>
+            <label>
+              최소 여유(분)
+              <input id="trip-slack-min" name="tripSlackMin" type="number" min="0" value="5">
+              <span class="field-error" id="trip-slack-error"></span>
+            </label>
+            <label>
+              환승 시간(분)
+              <input id="trip-transfer-min" name="transferMin" type="number" min="0" value="4">
+              <span class="field-error" id="trip-transfer-error"></span>
+            </label>
+          </details>
+        </div>
+
+        <div id="timetable-duration-fields">
         <label>
           걷는 시간(분)
           <input id="walk-min" name="walkMin" type="number" min="0">
@@ -67,6 +118,7 @@
           <input id="slack-min" name="slackMin" type="number" min="0" value="10">
           <span class="field-error" id="slack-error"></span>
         </label>
+        </div>
         <button type="submit">저장</button>
       </form>
       <div id="routes-list"></div>

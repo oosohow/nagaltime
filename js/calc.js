@@ -53,9 +53,54 @@ function calcPlan(route, arriveText, dayType) {
         return { ok: false, message: '도착 시간을 HH:MM 형식으로 입력해 주세요.' };
     }
 
+    if (route.type === 'trip') {
+        return calcTripPlan(route, toMin(arriveText), dayType);
+    }
+
     const fields = ['walkMin', 'rideMin', 'prepMin', 'slackMin'];
     if (!route || fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
         return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
+    }
+
+    // 추천 경로와 도착 분, 요일 유형을 받아 추천 열차 계획과 대안 목록을 반환합니다.
+    function calcTripPlan(route, arriveMin, dayType) {
+        const fields = ['walkMin', 'lastWalkMin', 'prepMin', 'slackMin', 'transferMin'];
+        if (fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
+            return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
+        }
+
+        const trips = dayType === 'weekday' ? TRIPS.weekday : TRIPS.holiday;
+        const deadlineMin = arriveMin - route.slackMin - route.lastWalkMin;
+        const candidates = findTrips(
+            trips,
+            route.fromStation,
+            route.toStation,
+            deadlineMin,
+            route.transferMin
+        );
+        if (candidates.length === 0) {
+            return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
+        }
+
+        const selected = candidates[0];
+        const departRaw = selected.dep - route.walkMin;
+        const wakeRaw = departRaw - route.prepMin;
+        const alertRaw = departRaw - 10;
+        const arriveEstRaw = selected.arr + route.lastWalkMin;
+        const normalize = (minute) => (minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute);
+
+        return {
+            ok: true,
+            train: selected.legs[0].dep,
+            depart: normalize(departRaw),
+            wake: normalize(wakeRaw),
+            alert: normalize(alertRaw),
+            arriveEst: normalize(arriveEstRaw),
+            slack: arriveMin - arriveEstRaw,
+            prevDay: wakeRaw < 0,
+            legs: selected.legs,
+            alternatives: candidates.slice(1)
+        };
     }
 
     const trainTimes = getTrainTimes(route, dayType);

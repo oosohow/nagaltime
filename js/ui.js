@@ -167,12 +167,15 @@ function renderRoutes() {
         const title = document.createElement('h3');
         title.textContent = route.name;
         const detail = document.createElement('p');
-        detail.textContent = route.customTimes
+        detail.textContent = route.type === 'trip'
+            ? `${route.fromStation} → ${route.toStation} (열차 추천)`
+            : route.customTimes
             ? `직접 입력: ${route.customTimes.join(', ')}`
             : `${route.line} · ${route.station} · ${route.direction}`;
         const timings = document.createElement('p');
-        timings.textContent =
-            `걷기 ${route.walkMin}분 · 이동 ${route.rideMin}분 · 준비 ${route.prepMin}분 · 여유 ${route.slackMin}분`;
+        timings.textContent = route.type === 'trip'
+            ? `출발역까지 ${route.walkMin}분 · 마지막 도보 ${route.lastWalkMin}분 · 준비 ${route.prepMin}분 · 여유 ${route.slackMin}분`
+            : `걷기 ${route.walkMin}분 · 이동 ${route.rideMin}분 · 준비 ${route.prepMin}분 · 여유 ${route.slackMin}분`;
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.textContent = '삭제';
@@ -259,6 +262,29 @@ function toggleCustomTimes() {
     document.getElementById('custom-times-field').hidden = !checked;
 }
 
+function getTripStationNames() {
+    const stations = new Set();
+    ['weekday', 'holiday'].forEach((dayType) => {
+        (TRIPS[dayType] || []).forEach((trip) => {
+            trip.stops.forEach(([station]) => stations.add(station));
+        });
+    });
+    return [...stations].sort();
+}
+
+function toggleRouteTypeFields() {
+    const isTrip = document.getElementById('route-type').value === 'trip';
+    document.getElementById('timetable-fields').hidden = isTrip;
+    document.getElementById('custom-times-field').hidden = isTrip || !document.getElementById('custom-times').checked;
+    document.getElementById('custom-times-toggle').hidden = isTrip;
+    document.getElementById('timetable-duration-fields').hidden = isTrip;
+    document.getElementById('trip-fields').hidden = !isTrip;
+}
+
+function readTripNumber(inputId, errorId, label) {
+    return readNonNegativeNumber(inputId, errorId, label);
+}
+
 function readNonNegativeNumber(inputId, errorId, label) {
     const rawValue = document.getElementById(inputId).value.trim();
     const value = Number(rawValue);
@@ -272,7 +298,8 @@ function readNonNegativeNumber(inputId, errorId, label) {
 function handleRouteSubmit(event) {
     event.preventDefault();
     clearErrors();
-    const custom = document.getElementById('custom-times').checked;
+    const routeType = document.getElementById('route-type').value;
+    const custom = routeType === 'timetable' && document.getElementById('custom-times').checked;
     const name = document.getElementById('route-name').value.trim();
     const line = document.getElementById('route-line').value;
     const station = document.getElementById('route-station').value;
@@ -283,15 +310,15 @@ function handleRouteSubmit(event) {
         showError('name-error', '이름을 입력해 주세요.');
         valid = false;
     }
-    if (!custom && !line) {
+    if (routeType === 'timetable' && !custom && !line) {
         showError('line-error', '노선을 선택해 주세요.');
         valid = false;
     }
-    if (!custom && !station) {
+    if (routeType === 'timetable' && !custom && !station) {
         showError('station-error', '역을 선택해 주세요.');
         valid = false;
     }
-    if (!custom && !direction) {
+    if (routeType === 'timetable' && !custom && !direction) {
         showError('direction-error', '방향을 선택해 주세요.');
         valid = false;
     }
@@ -312,42 +339,89 @@ function handleRouteSubmit(event) {
         ['ride-min', 'ride-error', '탑승 후 이동 시간'],
         ['prep-min', 'prep-error', '준비 시간'],
         ['slack-min', 'slack-error', '최소 여유']
-    ].map(([inputId, errorId, label]) => readNonNegativeNumber(inputId, errorId, label));
-    if (values.some((value) => value === null)) valid = false;
+    ].map(([inputId, errorId, label]) => routeType === 'timetable'
+        ? readNonNegativeNumber(inputId, errorId, label)
+        : 0);
+    if (routeType === 'timetable' && values.some((value) => value === null)) valid = false;
+
+    let tripValues = null;
+    if (routeType === 'trip') {
+        const tripFrom = document.getElementById('trip-from').value.trim();
+        const tripTo = document.getElementById('trip-to').value.trim();
+        const tripStations = getTripStationNames();
+        if (!tripStations.includes(tripFrom)) {
+            showError('trip-from-error', '출발역을 목록에서 선택해 주세요.');
+            valid = false;
+        }
+        if (!tripStations.includes(tripTo)) {
+            showError('trip-to-error', '도착역을 목록에서 선택해 주세요.');
+            valid = false;
+        }
+        tripValues = [
+            ['trip-walk-min', 'trip-walk-error', '집에서 출발역까지 시간'],
+            ['trip-last-walk-min', 'trip-last-walk-error', '도착역에서 목적지까지 시간'],
+            ['trip-prep-min', 'trip-prep-error', '일어나서 나가기까지 시간'],
+            ['trip-slack-min', 'trip-slack-error', '최소 여유'],
+            ['trip-transfer-min', 'trip-transfer-error', '환승 시간']
+        ].map(([inputId, errorId, label]) => readTripNumber(inputId, errorId, label));
+        if (tripValues.some((value) => value === null)) valid = false;
+    }
     if (!valid) return;
 
-    addRoute({
-        name,
-        line: custom ? null : line,
-        station: custom ? null : station,
-        direction: custom ? null : direction,
-        walkMin: values[0],
-        rideMin: values[1],
-        prepMin: values[2],
-        slackMin: values[3],
-        customTimes
-    });
+    const route = routeType === 'trip'
+        ? {
+            name,
+            type: 'trip',
+            fromStation: document.getElementById('trip-from').value.trim(),
+            toStation: document.getElementById('trip-to').value.trim(),
+            walkMin: tripValues[0],
+            lastWalkMin: tripValues[1],
+            prepMin: tripValues[2],
+            slackMin: tripValues[3],
+            transferMin: tripValues[4]
+        }
+        : {
+            name,
+            type: 'timetable',
+            line: custom ? null : line,
+            station: custom ? null : station,
+            direction: custom ? null : direction,
+            walkMin: values[0],
+            rideMin: values[1],
+            prepMin: values[2],
+            slackMin: values[3],
+            customTimes
+        };
+    addRoute(route);
     event.target.reset();
     document.getElementById('prep-min').value = 60;
     document.getElementById('slack-min').value = 10;
+    document.getElementById('route-type').value = 'timetable';
     setOptions(document.getElementById('route-station'), [], '역을 선택하세요');
     setOptions(document.getElementById('route-direction'), [], '방향을 선택하세요');
     toggleCustomTimes();
+    toggleRouteTypeFields();
     renderRoutes();
     renderWeekInputs();
     renderPlan();
 }
 
 function bindRouteEvents() {
+    const stationList = document.getElementById('trip-stations');
+    getTripStationNames().forEach((station) => {
+        stationList.appendChild(new Option(station, station));
+    });
     setOptions(document.getElementById('route-line'), getLines(), '노선을 선택하세요');
     setOptions(document.getElementById('route-station'), [], '역을 선택하세요');
     setOptions(document.getElementById('route-direction'), [], '방향을 선택하세요');
     document.getElementById('route-line').addEventListener('change', updateStationOptions);
     document.getElementById('route-station').addEventListener('change', updateDirectionOptions);
+    document.getElementById('route-type').addEventListener('change', toggleRouteTypeFields);
     document.getElementById('custom-times').addEventListener('change', toggleCustomTimes);
     document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
     document.getElementById('download-ics').addEventListener('click', handleIcsDownload);
     toggleCustomTimes();
+    toggleRouteTypeFields();
     renderRoutes();
     renderWeekInputs();
     renderPlan();
