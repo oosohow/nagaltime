@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>나갈시간 테스트</title>
+  <style>
+    body {
+      margin: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #d1d5db;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .passed {
+      color: #15803d;
+    }
+
+    .failed {
+      color: #dc2626;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="summary">테스트 실행 중...</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>번호</th>
+        <th>테스트 이름</th>
+        <th>기대값</th>
+        <th>실제값</th>
+        <th>결과</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <script src="data/timetable.js"></script>
+  <script src="js/time.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="tests/tests.js"></script>
+</body>
+</html>
