@@ -3,6 +3,7 @@
   --color-surface: #ffffff;
   --color-text: #1f2937;
   --color-border: #d1d5db;
+  --color-warning: #b45309;
 }
 
 body {
@@ -78,4 +79,43 @@ small {
   display: grid;
   gap: 8px;
   grid-template-columns: 80px 1fr 140px;
+}
+
+#plan-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.plan-card {
+  border: 1px solid var(--color-border);
+  min-height: 220px;
+  padding: 12px;
+}
+
+.plan-card.today {
+  border: 2px solid var(--color-text);
+}
+
+.plan-card.not-going {
+  color: #9ca3af;
+}
+
+.plan-card p {
+  margin: 8px 0;
+}
+
+.plan-error {
+  color: #dc2626;
+}
+
+.prev-day,
+.tight {
+  color: var(--color-warning);
+}
+
+@media (max-width: 720px) {
+  #plan-grid {
+    grid-template-columns: 1fr;
+  }
 }

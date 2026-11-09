@@ -12,6 +12,65 @@ const UI_DAY_LABELS = {
 };
 
 function renderPlan() {
+    const grid = document.getElementById('plan-grid');
+    const routes = loadRoutes();
+    const week = loadWeek();
+    const plans = calcWeek(routes, week, []);
+    const todayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+
+    grid.replaceChildren();
+    UI_DAY_KEYS.forEach((dayKey) => {
+        const card = document.createElement('article');
+        card.className = `plan-card${dayKey === todayKey ? ' today' : ''}`;
+        const heading = document.createElement('h3');
+        heading.textContent = UI_DAY_LABELS[dayKey];
+        card.appendChild(heading);
+
+        const dayPlan = week[dayKey];
+        const route = dayPlan && routes.find((item) => item.id === dayPlan.routeId);
+        if (!dayPlan) {
+            card.classList.add('not-going');
+            const message = document.createElement('p');
+            message.textContent = '안 감';
+            card.appendChild(message);
+            grid.appendChild(card);
+            return;
+        }
+
+        const result = plans[dayKey];
+        if (!route || !result.ok) {
+            const error = document.createElement('p');
+            error.className = 'plan-error';
+            error.textContent = result ? result.message : '경로를 찾을 수 없습니다.';
+            card.appendChild(error);
+            grid.appendChild(card);
+            return;
+        }
+
+        const destination = document.createElement('p');
+        destination.textContent = `목적지: ${route.name}`;
+        card.appendChild(destination);
+
+        const details = [
+            ['기상', toHHMM(result.wake), result.prevDay ? '전날' : ''],
+            ['출발', toHHMM(result.depart), ''],
+            ['탈 열차', toHHMM(result.train), ''],
+            ['도착 예상', toHHMM(result.arriveEst), ''],
+            ['여유', `${result.slack}분`, result.slack <= route.slackMin + 5 ? '빠듯' : '']
+        ];
+        details.forEach(([label, value, note]) => {
+            const detail = document.createElement('p');
+            detail.textContent = `${label}: ${value}`;
+            if (note) {
+                const noteElement = document.createElement('span');
+                noteElement.className = note === '빠듯' ? 'tight' : 'prev-day';
+                noteElement.textContent = ` (${note})`;
+                detail.appendChild(noteElement);
+            }
+            card.appendChild(detail);
+        });
+        grid.appendChild(card);
+    });
 }
 
 function setOptions(select, values, placeholder) {
@@ -60,6 +119,7 @@ function renderRoutes() {
             deleteRoute(route.id);
             renderRoutes();
             renderWeekInputs();
+            renderPlan();
         });
         card.append(title, detail, timings, deleteButton);
         list.appendChild(card);
@@ -214,6 +274,7 @@ function handleRouteSubmit(event) {
     toggleCustomTimes();
     renderRoutes();
     renderWeekInputs();
+    renderPlan();
 }
 
 function bindRouteEvents() {
@@ -226,6 +287,8 @@ function bindRouteEvents() {
     document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
     toggleCustomTimes();
     renderRoutes();
+    renderWeekInputs();
+    renderPlan();
 }
 
 bindRouteEvents();
