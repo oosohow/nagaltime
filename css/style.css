@@ -1,0 +1,11 @@
+:root {
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-border: #d1d5db;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
