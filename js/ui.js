@@ -87,10 +87,11 @@ function renderPlanDetails(card, result, route) {
     ];
     details.forEach(([label, value, note]) => {
         const detail = document.createElement('p');
+        detail.className = label === '기상' || label === '출발' ? 'key-time' : '';
         detail.textContent = `${label}: ${value}`;
         if (note) {
             const noteElement = document.createElement('span');
-            noteElement.className = note === '빠듯' ? 'tight' : 'prev-day';
+            noteElement.className = `status-badge ${note === '빠듯' ? 'tight' : 'prev-day'}`;
             noteElement.textContent = ` (${note})`;
             detail.appendChild(noteElement);
         }
@@ -208,8 +209,10 @@ function showError(id, message) {
 
 function renderRoutes() {
     const list = document.getElementById('routes-list');
+    const routes = loadRoutes();
+    document.getElementById('route-registration').open = routes.length === 0;
     list.replaceChildren();
-    loadRoutes().forEach((route) => {
+    routes.forEach((route) => {
         const card = document.createElement('article');
         const title = document.createElement('h3');
         title.textContent = route.name;

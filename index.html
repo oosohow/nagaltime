@@ -8,8 +8,31 @@
 </head>
 <body>
   <main>
+    <header class="app-header">
+      <h1>나갈시간</h1>
+      <p>도착 시간만 입력하면 탈 열차와 출발·기상 시간을 알려 드려요.</p>
+    </header>
+
     <section>
-      <h1>경로 등록</h1>
+      <h2>요일별 계획표</h2>
+      <div id="plan-grid"></div>
+    </section>
+
+    <section>
+      <h2>요일별 알람 목록</h2>
+      <div id="alarm-tabs" role="tablist"></div>
+      <div id="alarm-list"></div>
+      <button id="download-ics" type="button">캘린더로 보내기</button>
+    </section>
+
+    <section>
+      <h2>요일별 도착 시간</h2>
+      <p id="week-empty-message" hidden>먼저 경로를 등록해 주세요</p>
+      <div id="week-inputs"></div>
+    </section>
+
+    <details id="route-registration" open>
+      <summary>경로 등록</summary>
       <form id="route-form">
         <label>
           이름
@@ -122,19 +145,7 @@
         <button type="submit">저장</button>
       </form>
       <div id="routes-list"></div>
-    </section>
-    <section>
-      <h2>요일별 도착 시간 입력</h2>
-      <p id="week-empty-message" hidden>먼저 경로를 등록해 주세요</p>
-      <div id="week-inputs"></div>
-    </section>
-    <section>
-      <h2>요일별 계획표와 알람 목록</h2>
-      <div id="plan-grid"></div>
-      <div id="alarm-tabs" role="tablist"></div>
-      <div id="alarm-list"></div>
-      <button id="download-ics" type="button">캘린더로 보내기</button>
-    </section>
+    </details>
   </main>
 
   <script src="data/timetable.js"></script>
