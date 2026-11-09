@@ -38,6 +38,13 @@ function renderPlan() {
             return;
         }
 
+        function handleIcsDownload() {
+            const routes = loadRoutes();
+            const week = loadWeek();
+            const plans = calcWeek(routes, week, []);
+            downloadIcs(buildIcs(plans, routes));
+        }
+
         const result = plans[dayKey];
         if (!route || !result.ok) {
             const error = document.createElement('p');
@@ -329,6 +336,7 @@ function bindRouteEvents() {
     document.getElementById('route-station').addEventListener('change', updateDirectionOptions);
     document.getElementById('custom-times').addEventListener('change', toggleCustomTimes);
     document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
+    document.getElementById('download-ics').addEventListener('click', handleIcsDownload);
     toggleCustomTimes();
     renderRoutes();
     renderWeekInputs();
