@@ -194,7 +194,7 @@ function renderPlanCard(dayKey, week, routes, plans) {
     const planSummary = document.createElement('p');
     planSummary.className = 'plan-summary';
     planSummary.textContent = `${UI_DAY_LABELS[dayKey]} · ${route.name} ${dayPlan.arrive} 도착`;
-    main.append(heading, planSummary);
+    main.append(planSummary);
 
     const keyTimes = document.createElement('div');
     keyTimes.className = 'key-times';
@@ -208,6 +208,13 @@ function renderPlanCard(dayKey, week, routes, plans) {
         keyTimes.appendChild(time);
     });
     main.appendChild(keyTimes);
+    const firstLeg = result.legs && result.legs[0];
+    const hint = document.createElement('p');
+    hint.className = 'plan-hint';
+    hint.textContent = route.type === 'trip' && firstLeg
+        ? `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을 여유 있게 탈 수 있어요`
+        : `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} 열차를 여유 있게 탈 수 있어요`;
+    main.appendChild(hint);
     renderPlanDetails(main, result, route, dayKey, choices);
     card.replaceChildren(main, choices);
     return card;
