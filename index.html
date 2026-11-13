@@ -13,7 +13,7 @@
       <p>도착 시간만 입력하면 탈 열차와 출발·기상 시간을 알려 드려요.</p>
     </header>
 
-    <section>
+    <section class="plan-section">
       <h2>요일별 계획</h2>
       <div id="day-tabs" role="tablist"></div>
       <div id="selected-plan"></div>
@@ -21,16 +21,18 @@
       <button id="download-ics" type="button">캘린더로 보내기</button>
     </section>
 
-    <details id="week-registration">
-      <summary>요일별 도착 시간</summary>
-      <section>
+    <aside class="side-panel">
+      <div class="panel-tabs" role="tablist">
+        <button type="button" class="panel-tab" data-panel="week-registration" role="tab">요일별 도착 시간</button>
+        <button type="button" class="panel-tab" data-panel="route-registration" role="tab">경로 등록</button>
+      </div>
+
+      <div id="week-registration" class="panel-body">
         <p id="week-empty-message" hidden>먼저 경로를 등록해 주세요</p>
         <div id="week-inputs"></div>
-      </section>
-    </details>
+      </div>
 
-    <details id="route-registration" open>
-      <summary>경로 등록</summary>
+      <div id="route-registration" class="panel-body" hidden>
       <form id="route-form">
         <label>
           이름
@@ -120,7 +122,8 @@
         <button type="submit">저장</button>
       </form>
       <div id="routes-list"></div>
-    </details>
+      </div>
+    </aside>
   </main>
 
   <script src="data/trips.js"></script>

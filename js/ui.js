@@ -290,10 +290,21 @@ function showError(id, message) {
     document.getElementById(id).textContent = message;
 }
 
+function showPanel(panelId) {
+    document.querySelectorAll('.panel-tab').forEach((tab) => {
+        const active = tab.dataset.panel === panelId;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('.panel-body').forEach((panel) => {
+        panel.hidden = panel.id !== panelId;
+    });
+}
+
 function renderRoutes() {
     const list = document.getElementById('routes-list');
     const routes = loadRoutes();
-    document.getElementById('route-registration').open = routes.length === 0;
+    if (routes.length === 0) showPanel('route-registration');
     list.replaceChildren();
     routes.forEach((route) => {
         const card = document.createElement('article');
@@ -498,6 +509,7 @@ function handleRouteSubmit(event) {
     renderRoutes();
     renderWeekInputs();
     renderPlan();
+    showPanel('week-registration');
 }
 
 function bindRouteEvents() {
@@ -508,6 +520,10 @@ function bindRouteEvents() {
     document.getElementById('route-type').addEventListener('change', toggleRouteTypeFields);
     document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
     document.getElementById('download-ics').addEventListener('click', handleIcsDownload);
+    document.querySelectorAll('.panel-tab').forEach((tab) => {
+        tab.addEventListener('click', () => showPanel(tab.dataset.panel));
+    });
+    showPanel('week-registration');
     toggleRouteTypeFields();
     renderRoutes();
     renderWeekInputs();
