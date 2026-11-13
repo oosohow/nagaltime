@@ -18,6 +18,7 @@ function test(name, actual, expected) {
 
 const testRoute = {
     id: 'test-route',
+    type: 'custom',
     line: '테스트 노선',
     station: '테스트 역',
     direction: '테스트 방향',
@@ -84,7 +85,29 @@ test(
 );
 
 test(
-    '8. 직행·환승 열차 추천',
+    '8. 직접 입력 열차 시각',
+    calcPlan({ ...testRoute, type: 'custom' }, '09:00', 'weekday').train,
+    477
+);
+
+test(
+    '9. 예전 경로 다시 등록 안내',
+    calcPlan({
+        id: 'old-route',
+        line: '예전 노선',
+        station: '예전 역',
+        direction: '예전 방향',
+        customTimes: ['07:57'],
+        walkMin: 7,
+        rideMin: 50,
+        prepMin: 80,
+        slackMin: 10
+    }, '09:00', 'weekday'),
+    { ok: false, message: '예전 경로 형식입니다. 경로를 다시 등록해 주세요.' }
+);
+
+test(
+    '10. 직행·환승 열차 추천',
     (() => {
         const trips = findTrips(TRIPS.weekday, '가좌', '온수', 523, 4);
         return {
@@ -101,7 +124,7 @@ test(
 );
 
 test(
-    '9. 환승 시간이 부족한 조합 제외',
+    '11. 환승 시간이 부족한 조합 제외',
     findTrips([
         {
             no: 'A1',
@@ -118,13 +141,83 @@ test(
 );
 
 test(
-    '10. 추천 열차 없음',
+    '12. 추천 열차 없음',
     findTrips(TRIPS.weekday, '없는 역', '온수', 523, 4),
     []
 );
 
 test(
-    '11. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
+    '13. 홍대입구 → 신도림 → 온수 환승',
+    (() => {
+        const trips = findTrips([
+            {
+                no: 'M2',
+                line: '2호선',
+                stops: [['홍대입구', 470], ['신도림', 482]]
+            },
+            {
+                no: 'K1',
+                line: '1호선',
+                stops: [['신도림', 487], ['온수', 510]]
+            }
+        ], '홍대입구', '온수', 520, 4);
+        return trips[0].legs.map((leg) => [leg.line, leg.from, leg.to, leg.dep, leg.arr]);
+    })(),
+    [
+        ['2호선', '홍대입구', '신도림', 470, 482],
+        ['1호선', '신도림', '온수', 487, 510]
+    ]
+);
+
+test(
+    '14. 가산디지털단지 → 온수 직행',
+    (() => {
+        const trips = findTrips([
+            {
+                no: 'L7',
+                line: '7호선',
+                stops: [['가산디지털단지', 600], ['온수', 612]]
+            }
+        ], '가산디지털단지', '온수', 620, 4);
+        return trips[0].legs.map((leg) => [leg.line, leg.dep, leg.arr]);
+    })(),
+    [['7호선', 600, 612]]
+);
+
+test(
+    '15. 같은 노선 열차 환승 조합 제외',
+    findTrips([
+        {
+            no: 'L7-1',
+            line: '7호선',
+            stops: [['출발', 600], ['환승', 612]]
+        },
+        {
+            no: 'L7-2',
+            line: '7호선',
+            stops: [['환승', 616], ['도착', 628]]
+        }
+    ], '출발', '도착', 640, 4),
+    []
+);
+
+test(
+    '16. 순환 열차에서 출발역 다음 도착역 선택',
+    (() => {
+        const trips = findTrips([
+            {
+                no: 'LOOP',
+                line: '2호선',
+                stops: [['신도림', 600], ['홍대입구', 610], ['신도림', 620], ['잠실', 650]]
+            }
+        ], '홍대입구', '신도림', 630, 4);
+        return trips[0].legs.map((leg) => [leg.dep, leg.arr]);
+    })(),
+    [[610, 620]]
+);
+
+test(
+    '17. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
     (() => {
         const ics = buildIcs({
             mon: {

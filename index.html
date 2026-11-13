@@ -43,39 +43,39 @@
         <label>
           등록 방식
           <select id="route-type" name="type">
-            <option value="timetable">시간표 선택</option>
             <option value="trip">열차 추천</option>
+            <option value="custom">직접 입력</option>
           </select>
         </label>
 
-        <label id="custom-times-toggle">
-          <input id="custom-times" name="useCustomTimes" type="checkbox">
-          시간표가 없어요
-        </label>
-
-        <div id="timetable-fields">
+        <div id="custom-fields" hidden>
           <label>
-            노선
-            <select id="route-line" name="line"></select>
-            <span class="field-error" id="line-error"></span>
-          </label>
-          <label>
-            역
-            <select id="route-station" name="station" disabled></select>
-            <span class="field-error" id="station-error"></span>
-          </label>
-          <label>
-            방향
-            <select id="route-direction" name="direction" disabled></select>
-            <span class="field-error" id="direction-error"></span>
-          </label>
-        </div>
-
-        <label id="custom-times-field" hidden>
           열차 시각
           <textarea id="custom-times-input" name="customTimes" placeholder="07:47, 07:57"></textarea>
           <span class="field-error" id="custom-times-error"></span>
-        </label>
+          </label>
+          <label>
+            집에서 역까지(분)
+            <input id="walk-min" name="walkMin" type="number" min="0">
+            <span class="field-error" id="walk-error"></span>
+          </label>
+          <label>
+            탑승 후 이동 시간(분)
+            <input id="ride-min" name="rideMin" type="number" min="0">
+            <small>환승과 마지막 도보까지 포함한 전체 시간</small>
+            <span class="field-error" id="ride-error"></span>
+          </label>
+          <label>
+            준비 시간(분)
+            <input id="prep-min" name="prepMin" type="number" min="0" value="60">
+            <span class="field-error" id="prep-error"></span>
+          </label>
+          <label>
+            최소 여유(분)
+            <input id="slack-min" name="slackMin" type="number" min="0" value="10">
+            <span class="field-error" id="slack-error"></span>
+          </label>
+        </div>
 
         <div id="trip-fields" hidden>
           <label>
@@ -119,36 +119,12 @@
           </details>
         </div>
 
-        <div id="timetable-duration-fields">
-        <label>
-          걷는 시간(분)
-          <input id="walk-min" name="walkMin" type="number" min="0">
-          <span class="field-error" id="walk-error"></span>
-        </label>
-        <label>
-          탑승 후 이동 시간(분)
-          <input id="ride-min" name="rideMin" type="number" min="0">
-          <small>갈아타는 경우 환승과 마지막 도보까지 모두 포함</small>
-          <span class="field-error" id="ride-error"></span>
-        </label>
-        <label>
-          준비 시간(분)
-          <input id="prep-min" name="prepMin" type="number" min="0" value="60">
-          <span class="field-error" id="prep-error"></span>
-        </label>
-        <label>
-          최소 여유(분)
-          <input id="slack-min" name="slackMin" type="number" min="0" value="10">
-          <span class="field-error" id="slack-error"></span>
-        </label>
-        </div>
         <button type="submit">저장</button>
       </form>
       <div id="routes-list"></div>
     </details>
   </main>
 
-  <script src="data/timetable.js"></script>
   <script src="data/trips.js"></script>
   <script src="js/time.js"></script>
   <script src="js/calc.js"></script>
