@@ -16,26 +16,15 @@
 
 ## 3. 실행 방법
 
-### 데모 사이트
+### 1. 데모 사이트
 
 <https://oosohow.github.io/nagaltime/>
 
 GitHub Pages로 배포된 데모입니다. `main` 브랜치에 push하면 GitHub Actions가 자동으로 배포합니다.
 
-### 로컬: index.html 더블클릭
+### 2. 로컬: index.html 더블클릭
 
 저장소를 내려받은 뒤 [index.html](./index.html)을 브라우저에서 더블클릭합니다. 별도 설치가 필요 없습니다.
-
-### 로컬: Docker
-
-Docker가 설치되어 있다면 프로젝트 폴더에서 다음 명령을 실행합니다.
-
-```bash
-docker build -t nagaltime .
-docker run --rm -p 8080:80 nagaltime
-```
-
-브라우저에서 <http://localhost:8080>을 엽니다.
 
 테스트를 실행하려면 [tests.html](./tests.html)을 브라우저에서 더블클릭합니다. 이 프로젝트는 순수 HTML, CSS, JavaScript로 구성되어 `file://` 환경에서도 동작하며, 실행 중 외부 API나 빌드 도구를 사용하지 않습니다.
 
@@ -46,7 +35,6 @@ docker run --rm -p 8080:80 nagaltime
 ## 4. 배포
 
 - GitHub Pages: `main` 브랜치에 push하면 GitHub Actions가 `https://oosohow.github.io/nagaltime/`에 자동 배포합니다.
-- Docker: Dockerfile로 정적 파일을 nginx에 넣어 로컬에서 실행합니다.
 
 ## 5. 사용법
 
