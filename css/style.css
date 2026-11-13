@@ -403,6 +403,16 @@ textarea {
   color: var(--muted);
 }
 
+.route-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.route-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
 @media (max-width: 899px) {
   main {
     padding: 24px 16px 48px;

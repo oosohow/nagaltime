@@ -1,5 +1,7 @@
 // 화면 표시와 사용자 이벤트를 담당하는 파일입니다.
 
+let editingRouteId = null;
+
 const UI_DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const UI_DAY_LABELS = {
     mon: '월요일',
@@ -344,12 +346,20 @@ function renderRoutes() {
         deleteButton.type = 'button';
         deleteButton.textContent = '삭제';
         deleteButton.addEventListener('click', () => {
+            if (editingRouteId === route.id) resetRouteForm();
             deleteRoute(route.id);
             renderRoutes();
             renderWeekInputs();
             renderPlan();
         });
-        card.append(title, detail, timings, deleteButton);
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.textContent = '수정';
+        editButton.addEventListener('click', () => startRouteEdit(route));
+        const actions = document.createElement('div');
+        actions.className = 'route-actions';
+        actions.append(editButton, deleteButton);
+        card.append(title, detail, timings, actions);
         list.appendChild(card);
     });
 }
@@ -441,6 +451,47 @@ function readNonNegativeNumber(inputId, errorId, label) {
     return value;
 }
 
+function resetRouteForm() {
+    editingRouteId = null;
+    const form = document.getElementById('route-form');
+    form.reset();
+    document.getElementById('prep-min').value = 60;
+    document.getElementById('slack-min').value = 10;
+    document.getElementById('route-type').value = 'trip';
+    document.getElementById('route-submit').textContent = '저장';
+    document.getElementById('route-cancel').hidden = true;
+    clearErrors();
+    toggleRouteTypeFields();
+}
+
+function startRouteEdit(route) {
+    editingRouteId = route.id;
+    const form = document.getElementById('route-form');
+    document.getElementById('route-name').value = route.name || '';
+    document.getElementById('route-type').value = route.type;
+    if (route.type === 'trip') {
+        document.getElementById('trip-from').value = route.fromStation || '';
+        document.getElementById('trip-to').value = route.toStation || '';
+        document.getElementById('trip-walk-min').value = route.walkMin;
+        document.getElementById('trip-last-walk-min').value = route.lastWalkMin;
+        document.getElementById('trip-prep-min').value = route.prepMin;
+        document.getElementById('trip-slack-min').value = route.slackMin;
+        document.getElementById('trip-transfer-min').value = route.transferMin;
+    } else {
+        document.getElementById('custom-times-input').value = route.customTimes.join(', ');
+        document.getElementById('walk-min').value = route.walkMin;
+        document.getElementById('ride-min').value = route.rideMin;
+        document.getElementById('prep-min').value = route.prepMin;
+        document.getElementById('slack-min').value = route.slackMin;
+    }
+    document.getElementById('route-submit').textContent = '수정 저장';
+    document.getElementById('route-cancel').hidden = false;
+    clearErrors();
+    toggleRouteTypeFields();
+    showPanel('route-registration');
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function handleRouteSubmit(event) {
     event.preventDefault();
     clearErrors();
@@ -518,12 +569,9 @@ function handleRouteSubmit(event) {
             slackMin: values[3],
             customTimes
         };
-    addRoute(route);
-    event.target.reset();
-    document.getElementById('prep-min').value = 60;
-    document.getElementById('slack-min').value = 10;
-    document.getElementById('route-type').value = 'trip';
-    toggleRouteTypeFields();
+    if (editingRouteId) updateRoute(editingRouteId, route);
+    else addRoute(route);
+    resetRouteForm();
     renderRoutes();
     renderWeekInputs();
     renderPlan();
@@ -537,6 +585,12 @@ function bindRouteEvents() {
     });
     document.getElementById('route-type').addEventListener('change', toggleRouteTypeFields);
     document.getElementById('route-form').addEventListener('submit', handleRouteSubmit);
+    document.getElementById('route-cancel').addEventListener('click', () => {
+        resetRouteForm();
+        renderRoutes();
+        renderWeekInputs();
+        renderPlan();
+    });
     document.getElementById('download-ics').addEventListener('click', handleIcsDownload);
     document.querySelectorAll('.panel-tab').forEach((tab) => {
         tab.addEventListener('click', () => showPanel(tab.dataset.panel));
