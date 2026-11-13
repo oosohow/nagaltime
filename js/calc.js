@@ -42,7 +42,7 @@ function pickTrain(trainMins, arriveMin, rideMin, slackMin) {
 }
 
 // 경로와 도착 시각, 요일 유형을 받아 하루 이동 계획 또는 오류 객체를 반환합니다.
-function calcPlan(route, arriveText, dayType) {
+function calcPlan(route, arriveText, dayType, choice) {
     if (typeof arriveText !== 'string' || toMin(arriveText) === null) {
         return { ok: false, message: '도착 시간을 HH:MM 형식으로 입력해 주세요.' };
     }
@@ -52,7 +52,7 @@ function calcPlan(route, arriveText, dayType) {
     }
 
     if (route.type === 'trip') {
-        return calcTripPlan(route, toMin(arriveText), dayType);
+        return calcTripPlan(route, toMin(arriveText), dayType, choice);
     }
 
     const fields = ['walkMin', 'rideMin', 'prepMin', 'slackMin'];
@@ -61,7 +61,7 @@ function calcPlan(route, arriveText, dayType) {
     }
 
     // 추천 경로와 도착 분, 요일 유형을 받아 추천 열차 계획과 대안 목록을 반환합니다.
-    function calcTripPlan(route, arriveMin, dayType) {
+    function calcTripPlan(route, arriveMin, dayType, choice) {
         const fields = ['walkMin', 'lastWalkMin', 'prepMin', 'slackMin', 'transferMin'];
         if (fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
             return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
@@ -69,18 +69,20 @@ function calcPlan(route, arriveText, dayType) {
 
         const trips = dayType === 'weekday' ? TRIPS.weekday : TRIPS.holiday;
         const deadlineMin = arriveMin - route.slackMin - route.lastWalkMin;
-        const candidates = findTrips(
+        const options = findTripOptions(
             trips,
             route.fromStation,
             route.toStation,
             deadlineMin,
             route.transferMin
         );
-        if (candidates.length === 0) {
+        if (options.length === 0) {
             return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
         }
 
-        const selected = candidates[0];
+        const selected = options.find((option) => option.legs[0].no === choice) || options.find(
+            (option) => option.kind === 'best'
+        ) || options[0];
         const departRaw = selected.dep - route.walkMin;
         const wakeRaw = departRaw - route.prepMin;
         const alertRaw = departRaw - 10;
@@ -97,7 +99,9 @@ function calcPlan(route, arriveText, dayType) {
             slack: arriveMin - arriveEstRaw,
             prevDay: wakeRaw < 0,
             legs: selected.legs,
-            alternatives: candidates.slice(1)
+            late: selected.kind === 'late',
+            options,
+            choice: selected.legs[0].no
         };
     }
 
@@ -146,14 +150,19 @@ function calcWeek(routes, week, holidays) {
             results[dayKey] = { ok: false, message: '경로를 찾을 수 없습니다.' };
             continue;
         }
-        results[dayKey] = calcPlan(route, dayPlan.arrive, getDayType(dayKey, holidayList.includes(dayKey)));
+        results[dayKey] = calcPlan(
+            route,
+            dayPlan.arrive,
+            getDayType(dayKey, holidayList.includes(dayKey)),
+            dayPlan.choice
+        );
     }
 
     return results;
 }
 
 // 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
-function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
+function collectTrips(trips, fromStation, toStation, transferMin) {
     const findStopIndexAfter = (stops, station, startIndex) => stops.findIndex(
         ([stopStation], index) => index > startIndex && stopStation === station
     );
@@ -175,20 +184,18 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         const directToIndex = findStopIndexAfter(firstTrip.stops, toStation, fromIndex);
         if (directToIndex !== -1) {
             const toStop = firstTrip.stops[directToIndex];
-            if (toStop[1] <= deadlineMin) {
-                results.push({
-                    legs: [{
-                        line: firstTrip.line,
-                        no: firstTrip.no,
-                        from: fromStation,
-                        dep: fromStop[1],
-                        to: toStation,
-                        arr: toStop[1]
-                    }],
+            results.push({
+                legs: [{
+                    line: firstTrip.line,
+                    no: firstTrip.no,
+                    from: fromStation,
                     dep: fromStop[1],
+                    to: toStation,
                     arr: toStop[1]
-                });
-            }
+                }],
+                dep: fromStop[1],
+                arr: toStop[1]
+            });
         }
 
         const transferStations = new Set(
@@ -215,8 +222,6 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
                 if (destinationIndex === -1) return;
 
                 const destination = secondTrip.stops[destinationIndex];
-                if (destination[1] > deadlineMin) return;
-
                 results.push({
                     legs: [
                         {
@@ -243,7 +248,45 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         });
     });
 
-    return results
-        .sort((first, second) => second.dep - first.dep || second.arr - first.arr)
+    return results;
+}
+
+function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
+    return collectTrips(trips, fromStation, toStation, transferMin)
+        .filter((trip) => trip.arr <= deadlineMin)
+        .sort((first, second) => second.dep - first.dep || first.arr - second.arr)
         .slice(0, 3);
+}
+
+function findTripOptions(trips, fromStation, toStation, deadlineMin, transferMin) {
+    const uniqueTrips = new Map();
+    collectTrips(trips, fromStation, toStation, transferMin).forEach((trip) => {
+        const firstLeg = trip.legs[0];
+        const key = `${firstLeg.no}|${firstLeg.dep}`;
+        const previous = uniqueTrips.get(key);
+        if (!previous || trip.arr < previous.arr) uniqueTrips.set(key, trip);
+    });
+
+    const candidates = [...uniqueTrips.values()];
+    const onTime = candidates
+        .filter((trip) => trip.arr <= deadlineMin)
+        .sort((first, second) => second.dep - first.dep || first.arr - second.arr);
+    if (onTime.length === 0) return [];
+
+    const best = { ...onTime[0], kind: 'best', lateMin: 0 };
+    const early = onTime
+        .slice(1, 3)
+        .map((trip) => ({ ...trip, kind: 'early', lateMin: 0 }));
+    const lateCandidate = candidates
+        .filter((trip) => trip.dep > best.dep && trip.arr > deadlineMin)
+        .map((trip) => ({ ...trip, lateMin: trip.arr - deadlineMin }))
+        .filter((trip) => trip.lateMin <= 30)
+        .sort((first, second) => first.arr - second.arr || first.dep - second.dep)[0];
+    const late = lateCandidate
+        ? [{ ...lateCandidate, kind: 'late' }]
+        : [];
+
+    return [...early, best, ...late].sort(
+        (first, second) => first.dep - second.dep || first.arr - second.arr
+    );
 }
