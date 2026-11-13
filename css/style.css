@@ -551,7 +551,7 @@ textarea {
 main {
   max-width: 1440px;
   padding: 24px 32px 48px;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 380px minmax(0, 1fr);
   grid-template-areas:
     "header header"
     "panel plan";
