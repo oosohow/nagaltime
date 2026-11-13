@@ -84,9 +84,19 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
         const flow = document.createElement('div');
         flow.className = 'trip-flow';
 
-        const addFlowItem = (time, text, line = '') => {
+        const lineColors = {
+            '1호선': '#0052A4',
+            '2호선': '#00A84D',
+            '7호선': '#747F00',
+            '경의중앙선': '#77C4A3',
+            '수인분당선': '#F5A200'
+        };
+        const addFlowItem = (time, text, type, line = '') => {
             const item = document.createElement('div');
-            item.className = `trip-flow-item${line ? ` line-${line.replace(/[^a-zA-Z0-9가-힣]/g, '-')}` : ''}`;
+            item.className = `trip-flow-item ${type}`;
+            if (line) {
+                item.style.setProperty('--line-color', lineColors[line] || '#8B95A1');
+            }
             const timeElement = document.createElement('time');
             timeElement.textContent = time;
             const marker = document.createElement('span');
@@ -98,22 +108,27 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
             flow.appendChild(item);
         };
 
+        const firstLeg = result.legs[0];
+        addFlowItem(toHHMM(result.depart), '집에서 출발', 'walk');
+        addFlowItem(toHHMM(firstLeg.dep), `${firstLeg.from} ${firstLeg.line}`, 'train', firstLeg.line);
         result.legs.forEach((leg, index) => {
-            if (index > 0) {
-                const previousLeg = result.legs[index - 1];
-                addFlowItem(
-                    toHHMM(leg.dep),
-                    `${previousLeg.to} ${leg.line} ${toHHMM(leg.dep)} 환승`,
-                    leg.line
-                );
-            } else {
-                addFlowItem(toHHMM(leg.dep), `${leg.from} ${leg.line}`, leg.line);
-            }
+            if (index === 0) return;
+            const previousLeg = result.legs[index - 1];
+            addFlowItem(
+                toHHMM(leg.dep),
+                `${previousLeg.to} ${toHHMM(leg.dep)} ${leg.line} 환승`,
+                'transfer',
+                leg.line
+            );
         });
 
         const lastLeg = result.legs[result.legs.length - 1];
-        addFlowItem(toHHMM(lastLeg.arr), `${lastLeg.to} 도착`);
-        addFlowItem(toHHMM(result.arriveEst), `목적지 도착 (여유 ${result.slack}분)`);
+        addFlowItem(toHHMM(lastLeg.arr), `${lastLeg.to} 도착`, 'train', lastLeg.line);
+        addFlowItem(
+            toHHMM(result.arriveEst),
+            `목적지 도착 (여유 ${result.slack}분)`,
+            'walk'
+        );
         card.appendChild(flow);
 
         renderTripOptions(choiceCard, result, dayKey);
@@ -199,6 +214,8 @@ function renderPlanCard(dayKey, week, routes, plans) {
 function renderPlan() {
     const tabs = document.getElementById('day-tabs');
     const selectedPlan = document.getElementById('selected-plan');
+    const alarmList = document.getElementById('alarm-list');
+    const calendarButton = document.getElementById('download-ics');
     const routes = loadRoutes();
     const week = loadWeek();
     const plans = calcWeek(routes, week, []);
@@ -221,8 +238,10 @@ function renderPlan() {
 
     selectedPlan.replaceChildren();
     selectedPlan.appendChild(renderPlanCard(selectedPlanDayKey, week, routes, plans));
-    selectedPlan.appendChild(document.getElementById('alarm-list'));
-    selectedPlan.appendChild(document.getElementById('download-ics'));
+    selectedPlan.appendChild(alarmList);
+    calendarButton.textContent = '이번 주 알람을 캘린더로 보내기';
+    calendarButton.disabled = !UI_DAY_KEYS.some((dayKey) => plans[dayKey] && plans[dayKey].ok);
+    selectedPlan.appendChild(calendarButton);
     renderAlarmList(routes, week, plans, selectedPlanDayKey);
 }
 
