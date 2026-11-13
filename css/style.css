@@ -245,6 +245,23 @@ input[type="number"] {
   margin: 6px 0;
 }
 
+.trip-options {
+  border-top: 1px solid var(--color-border);
+  margin-top: 16px;
+  padding-top: 10px;
+}
+
+.trip-option {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.trip-option.late {
+  color: var(--color-danger);
+}
+
 .plan-error {
   color: var(--color-danger);
 }
@@ -279,6 +296,11 @@ input[type="number"] {
 
 .alarm-item {
   margin: 8px 0;
+}
+
+.alarm-summary {
+  font-weight: 700;
+  margin: 0 0 12px;
 }
 
 .prev-day,

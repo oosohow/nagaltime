@@ -26,7 +26,53 @@ function renderPlanError(card, message) {
     card.appendChild(error);
 }
 
-function renderPlanDetails(card, result, route) {
+function renderTripOptions(card, result, dayKey) {
+    if (!result.options || result.options.length === 0) return;
+
+    const options = document.createElement('div');
+    options.className = 'trip-options';
+    const heading = document.createElement('strong');
+    heading.textContent = '탈 열차 선택';
+    options.appendChild(heading);
+
+    result.options.forEach((option, index) => {
+        const label = document.createElement('label');
+        label.className = option.kind === 'late' ? 'trip-option late' : 'trip-option';
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = `trip-choice-${dayKey}`;
+        radio.value = option.legs[0].no;
+        radio.checked = option.legs[0].no === result.choice;
+        radio.addEventListener('change', () => {
+            const week = loadWeek();
+            week[dayKey] = {
+                ...week[dayKey],
+                choice: option.legs[0].no
+            };
+            saveWeek(week);
+            renderPlan();
+        });
+
+        const firstLeg = option.legs[0];
+        const routeText = [`${toHHMM(firstLeg.dep)} ${firstLeg.line}`];
+        option.legs.slice(1).forEach((leg) => {
+            routeText.push(`${toHHMM(leg.dep)} ${leg.line}`);
+        });
+        const lastLeg = option.legs[option.legs.length - 1];
+        const kindText = option.kind === 'best'
+            ? '추천'
+            : option.kind === 'early'
+            ? '여유'
+            : `지각 위험 ${option.lateMin}분`;
+        const text = document.createElement('span');
+        text.textContent = `${routeText.join(' → ')} → ${toHHMM(lastLeg.arr)} 도착 · ${kindText}`;
+        label.append(radio, text);
+        options.appendChild(label);
+    });
+    card.appendChild(options);
+}
+
+function renderPlanDetails(card, result, route, dayKey) {
     if (route.type === 'trip') {
         const flow = document.createElement('div');
         flow.className = 'trip-flow';
@@ -57,20 +103,7 @@ function renderPlanDetails(card, result, route) {
         addFlowItem(`${toHHMM(result.arriveEst)} 목적지 도착 (여유 ${result.slack}분)`);
         card.appendChild(flow);
 
-        if (result.alternatives && result.alternatives.length > 0) {
-            const alternatives = document.createElement('div');
-            alternatives.className = 'trip-alternatives';
-            const heading = document.createElement('strong');
-            heading.textContent = '다른 열차';
-            alternatives.appendChild(heading);
-            result.alternatives.forEach((alternative) => {
-                const firstLeg = alternative.legs[0];
-                const item = document.createElement('p');
-                item.textContent = `${toHHMM(alternative.dep)} 출발 · ${firstLeg.no} (${firstLeg.line})`;
-                alternatives.appendChild(item);
-            });
-            card.appendChild(alternatives);
-        }
+        renderTripOptions(card, result, dayKey);
         return;
     }
 
@@ -122,7 +155,7 @@ function renderPlanCard(dayKey, todayKey, week, routes, plans) {
         return card;
     }
 
-    renderPlanDetails(card, result, route);
+    renderPlanDetails(card, result, route, dayKey);
     return card;
 }
 
@@ -169,7 +202,13 @@ function renderAlarmList(routes, week, plans) {
         return;
     }
 
-    const alarmLabel = `${toHHMM(result.train)} 열차 · ${dayPlan.arrive} 도착`;
+    const firstLeg = result.legs && result.legs[0];
+    const summary = document.createElement('p');
+    summary.className = 'alarm-summary';
+    summary.textContent = route.type === 'trip' && firstLeg
+        ? `${UI_DAY_LABELS[selectedAlarmDayKey]} · ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line} → ${dayPlan.arrive} 도착`
+        : `${UI_DAY_LABELS[selectedAlarmDayKey]} · ${toHHMM(result.train)} 열차 → ${dayPlan.arrive} 도착`;
+    list.appendChild(summary);
     [
         ['기상', result.wake],
         ['출발 알림', result.alert],
@@ -177,7 +216,7 @@ function renderAlarmList(routes, week, plans) {
     ].sort((first, second) => first[1] - second[1]).forEach(([name, minute]) => {
         const alarm = document.createElement('p');
         alarm.className = 'alarm-item';
-        alarm.textContent = `${toHHMM(minute)} ${name} · ${alarmLabel}`;
+        alarm.textContent = `${toHHMM(minute)} ${name}`;
         list.appendChild(alarm);
     });
 }
