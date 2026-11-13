@@ -162,6 +162,20 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
     });
 }
 
+function buildPlanHint(result, route) {
+    const firstLeg = result.legs && result.legs[0];
+    const trainText = route.type === 'trip' && firstLeg
+        ? `${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을`
+        : `${toHHMM(result.train)} 열차를`;
+    if (result.kind === 'late') {
+        return `${toHHMM(result.depart)}에 나가면 ${trainText} 타는데 ${result.lateMin}분 늦어요`;
+    }
+    if (result.kind === 'tight') {
+        return `${toHHMM(result.depart)}에 나가면 ${trainText} 탈 수 있지만 빠듯해요`;
+    }
+    return `${toHHMM(result.depart)}에 나가면 ${trainText} 여유 있게 탈 수 있어요`;
+}
+
 function renderPlanCard(dayKey, week, routes, plans) {
     const card = document.createElement('article');
     card.className = 'plan-card today';
@@ -208,15 +222,9 @@ function renderPlanCard(dayKey, week, routes, plans) {
         keyTimes.appendChild(time);
     });
     main.appendChild(keyTimes);
-    const firstLeg = result.legs && result.legs[0];
     const hint = document.createElement('p');
     hint.className = 'plan-hint';
-    const timingHint = result.kind === 'late'
-        ? `${result.lateMin}분 늦게 도착해요`
-        : result.kind === 'tight' ? '빠듯하게' : '여유 있게';
-    hint.textContent = route.type === 'trip' && firstLeg
-        ? `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을 ${timingHint}`
-        : `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} 열차를 ${timingHint}`;
+    hint.textContent = buildPlanHint(result, route);
     main.appendChild(hint);
     renderPlanDetails(main, result, route, dayKey, choices);
     card.replaceChildren(main, choices);
@@ -540,4 +548,4 @@ function bindRouteEvents() {
     renderPlan();
 }
 
-bindRouteEvents();
+if (document.getElementById('route-form')) bindRouteEvents();
