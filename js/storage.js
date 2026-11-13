@@ -68,6 +68,27 @@ function addRoute(route) {
     return newRoute;
 }
 
+function updateRoute(id, route) {
+    const routes = loadRoutes();
+    const routeIndex = routes.findIndex((item) => item.id === id);
+    if (routeIndex === -1) return null;
+
+    const updatedRoute = { ...route, id };
+    routes[routeIndex] = updatedRoute;
+    const week = loadWeek();
+    DAY_KEYS.forEach((dayKey) => {
+        const dayPlan = week[dayKey];
+        if (dayPlan && dayPlan.routeId === id
+            && Object.prototype.hasOwnProperty.call(dayPlan, 'choice')) {
+            const { choice, ...planWithoutChoice } = dayPlan;
+            week[dayKey] = planWithoutChoice;
+        }
+    });
+    saveRoutes(routes);
+    saveWeek(week);
+    return updatedRoute;
+}
+
 function deleteRoute(id) {
     const routes = loadRoutes().filter((route) => route.id !== id);
     const week = loadWeek();

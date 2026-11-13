@@ -1,4 +1,6 @@
 const testResults = [];
+const savedRoutesStorage = localStorage.getItem('nagalsigan.routes');
+const savedWeekStorage = localStorage.getItem('nagalsigan.week');
 
 function isEqual(actual, expected) {
     return JSON.stringify(actual) === JSON.stringify(expected);
@@ -414,6 +416,47 @@ test(
     }
 );
 
+test(
+    '30. 경로 수정은 id와 변경 값을 저장함',
+    (() => {
+        saveRoutes([{ id: 'edit-route', name: '기존', walkMin: 5 }]);
+        const updated = updateRoute('edit-route', { name: '변경', walkMin: 12 });
+        return {
+            id: updated.id,
+            name: loadRoutes()[0].name,
+            walkMin: loadRoutes()[0].walkMin
+        };
+    })(),
+    { id: 'edit-route', name: '변경', walkMin: 12 }
+);
+
+test(
+    '31. 경로 수정 시 요일 도착 시간은 유지하고 choice만 삭제함',
+    (() => {
+        saveRoutes([{ id: 'edit-route', name: '기존' }]);
+        saveWeek({
+            mon: { routeId: 'edit-route', arrive: '09:00', choice: 'K1' },
+            tue: null
+        });
+        updateRoute('edit-route', { name: '변경' });
+        return loadWeek().mon;
+    })(),
+    { routeId: 'edit-route', arrive: '09:00' }
+);
+
+test(
+    '32. 없는 id의 경로 수정은 null이고 기존 경로를 유지함',
+    (() => {
+        saveRoutes([{ id: 'keep-route', name: '기존', walkMin: 5 }]);
+        const updated = updateRoute('missing-route', { name: '변경', walkMin: 12 });
+        return { updated, routes: loadRoutes() };
+    })(),
+    {
+        updated: null,
+        routes: [{ id: 'keep-route', name: '기존', walkMin: 5 }]
+    }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
@@ -431,3 +474,8 @@ testResults.forEach((result, index) => {
     `;
     resultBody.appendChild(row);
 });
+
+if (savedRoutesStorage === null) localStorage.removeItem('nagalsigan.routes');
+else localStorage.setItem('nagalsigan.routes', savedRoutesStorage);
+if (savedWeekStorage === null) localStorage.removeItem('nagalsigan.week');
+else localStorage.setItem('nagalsigan.week', savedWeekStorage);
