@@ -241,6 +241,10 @@ input[type="number"] {
   color: var(--danger);
 }
 
+.trip-option.tight {
+  color: #d97706;
+}
+
 .trip-option-kind {
   color: var(--muted);
   white-space: nowrap;
