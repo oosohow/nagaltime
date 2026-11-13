@@ -10,8 +10,7 @@ const UI_DAY_LABELS = {
     sat: '토요일',
     sun: '일요일'
 };
-let selectedAlarmDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
-let selectedPlanDayKey = selectedAlarmDayKey;
+let selectedPlanDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 
 function handleIcsDownload() {
     const routes = loadRoutes();
@@ -80,7 +79,7 @@ function renderTripOptions(card, result, dayKey) {
     card.appendChild(options);
 }
 
-function renderPlanDetails(card, result, route, dayKey) {
+function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
     if (route.type === 'trip') {
         const flow = document.createElement('div');
         flow.className = 'trip-flow';
@@ -117,7 +116,7 @@ function renderPlanDetails(card, result, route, dayKey) {
         addFlowItem(toHHMM(result.arriveEst), `목적지 도착 (여유 ${result.slack}분)`);
         card.appendChild(flow);
 
-        renderTripOptions(card, result, dayKey);
+        renderTripOptions(choiceCard, result, dayKey);
         return;
     }
 
@@ -170,10 +169,15 @@ function renderPlanCard(dayKey, week, routes, plans) {
         return card;
     }
 
+    const main = document.createElement('div');
+    main.className = 'selected-plan-main';
+    const choices = document.createElement('div');
+    choices.className = 'selected-plan-choices';
+
     const planSummary = document.createElement('p');
     planSummary.className = 'plan-summary';
     planSummary.textContent = `${UI_DAY_LABELS[dayKey]} · ${route.name} ${dayPlan.arrive} 도착`;
-    card.insertBefore(planSummary, heading.nextSibling);
+    main.append(heading, planSummary);
 
     const keyTimes = document.createElement('div');
     keyTimes.className = 'key-times';
@@ -186,105 +190,52 @@ function renderPlanCard(dayKey, week, routes, plans) {
         time.textContent = `${label} ${toHHMM(minute)}`;
         keyTimes.appendChild(time);
     });
-    card.appendChild(keyTimes);
-    renderPlanDetails(card, result, route, dayKey);
+    main.appendChild(keyTimes);
+    renderPlanDetails(main, result, route, dayKey, choices);
+    card.replaceChildren(main, choices);
     return card;
 }
 
-function renderWeekRow(dayKey, selectedDayKey, week, routes, plans) {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = `plan-row${dayKey === selectedDayKey ? ' selected' : ''}`;
-    row.addEventListener('click', () => {
-        selectedPlanDayKey = dayKey;
-        selectedAlarmDayKey = dayKey;
-        renderPlan();
-    });
-
-    const day = document.createElement('span');
-    day.className = 'plan-row-day';
-    day.textContent = UI_DAY_LABELS[dayKey];
-    const dayPlan = week[dayKey];
-    const route = dayPlan && routes.find((item) => item.id === dayPlan.routeId);
-    const result = plans[dayKey];
-    row.appendChild(day);
-
-    if (!dayPlan || !route || !result || !result.ok) {
-        const empty = document.createElement('span');
-        empty.className = 'plan-row-empty';
-        empty.textContent = '안 감';
-        row.appendChild(empty);
-        return row;
-    }
-
-    [
-        ['plan-row-arrive', dayPlan.arrive],
-        ['plan-row-time', toHHMM(result.wake)],
-        ['plan-row-time', toHHMM(result.depart)]
-    ].forEach(([className, textContent]) => {
-        const value = document.createElement('span');
-        value.className = className;
-        value.textContent = textContent;
-        row.appendChild(value);
-    });
-
-    const firstTrain = document.createElement('span');
-    firstTrain.className = 'plan-row-train';
-    const dot = document.createElement('i');
-    dot.className = `line-dot line-${(result.legs?.[0]?.line || '').replace(/[^a-zA-Z0-9가-힣]/g, '-')}`;
-    const trainText = document.createElement('span');
-    trainText.textContent = result.legs?.[0]
-        ? `${toHHMM(result.legs[0].dep)} ${result.legs[0].from}`
-        : `${toHHMM(result.train)} 열차`;
-    firstTrain.append(dot, trainText);
-    row.appendChild(firstTrain);
-    return row;
-}
-
 function renderPlan() {
-    const grid = document.getElementById('plan-grid');
-    const todayPanel = document.getElementById('today-panel');
+    const tabs = document.getElementById('day-tabs');
+    const selectedPlan = document.getElementById('selected-plan');
     const routes = loadRoutes();
     const week = loadWeek();
     const plans = calcWeek(routes, week, []);
     if (!UI_DAY_KEYS.includes(selectedPlanDayKey)) selectedPlanDayKey = UI_DAY_KEYS[0];
 
-    grid.replaceChildren();
-    todayPanel.replaceChildren();
-    const selectedCard = renderPlanCard(selectedPlanDayKey, week, routes, plans);
-    selectedCard.querySelector('.plan-day').textContent = '오늘';
-    todayPanel.appendChild(selectedCard);
-    UI_DAY_KEYS.forEach((dayKey) => {
-        grid.appendChild(renderWeekRow(dayKey, selectedPlanDayKey, week, routes, plans));
-    });
-    renderAlarmList(routes, week, plans);
-}
-
-function renderAlarmList(routes, week, plans) {
-    const tabs = document.getElementById('alarm-tabs');
-    const list = document.getElementById('alarm-list');
     tabs.replaceChildren();
-    list.replaceChildren();
-
     UI_DAY_KEYS.forEach((dayKey) => {
         const tab = document.createElement('button');
         tab.type = 'button';
-        tab.textContent = UI_DAY_LABELS[dayKey];
-        tab.className = `alarm-tab${dayKey === selectedAlarmDayKey ? ' active' : ''}`;
-        tab.setAttribute('aria-selected', dayKey === selectedAlarmDayKey ? 'true' : 'false');
+        tab.className = `day-tab${dayKey === selectedPlanDayKey ? ' active' : ''}`;
+        tab.textContent = UI_DAY_LABELS[dayKey].slice(0, 1);
+        tab.setAttribute('aria-selected', dayKey === selectedPlanDayKey ? 'true' : 'false');
+        if (!week[dayKey]) tab.classList.add('not-going');
         tab.addEventListener('click', () => {
-            selectedAlarmDayKey = dayKey;
-            renderAlarmList(routes, week, plans);
+            selectedPlanDayKey = dayKey;
+            renderPlan();
         });
         tabs.appendChild(tab);
     });
 
-    const dayPlan = week[selectedAlarmDayKey];
+    selectedPlan.replaceChildren();
+    selectedPlan.appendChild(renderPlanCard(selectedPlanDayKey, week, routes, plans));
+    selectedPlan.appendChild(document.getElementById('alarm-list'));
+    selectedPlan.appendChild(document.getElementById('download-ics'));
+    renderAlarmList(routes, week, plans, selectedPlanDayKey);
+}
+
+function renderAlarmList(routes, week, plans, dayKey) {
+    const list = document.getElementById('alarm-list');
+    list.replaceChildren();
+
+    const dayPlan = week[dayKey];
     const route = dayPlan && routes.find((item) => item.id === dayPlan.routeId);
-    const result = plans[selectedAlarmDayKey];
+    const result = plans[dayKey];
     if (!dayPlan || !route || !result || !result.ok) {
         const empty = document.createElement('p');
-        empty.textContent = '알람 없음';
+        empty.textContent = '이 요일은 일정이 없어요';
         list.appendChild(empty);
         return;
     }
@@ -293,8 +244,8 @@ function renderAlarmList(routes, week, plans) {
     const summary = document.createElement('p');
     summary.className = 'alarm-summary';
     summary.textContent = route.type === 'trip' && firstLeg
-        ? `${UI_DAY_LABELS[selectedAlarmDayKey]} · ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line} → ${dayPlan.arrive} 도착`
-        : `${UI_DAY_LABELS[selectedAlarmDayKey]} · ${toHHMM(result.train)} 열차 → ${dayPlan.arrive} 도착`;
+        ? `${UI_DAY_LABELS[dayKey]} · ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line} → ${dayPlan.arrive} 도착`
+        : `${UI_DAY_LABELS[dayKey]} · ${toHHMM(result.train)} 열차 → ${dayPlan.arrive} 도착`;
     list.appendChild(summary);
     [
         ['기상', result.wake],
