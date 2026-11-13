@@ -147,7 +147,21 @@ test(
 );
 
 test(
-    '13. 홍대입구 → 신도림 → 온수 환승',
+    '13. 휴일 홍대입구 → 신도림 2호선 직행',
+    findTrips(TRIPS.holiday, '홍대입구', '신도림', 1440, 4)
+        .some((trip) => trip.legs.length === 1 && trip.legs[0].line === '2호선'),
+    true
+);
+
+test(
+    '14. 평일 선릉 → 가천대 수인분당선 직행',
+    findTrips(TRIPS.weekday, '선릉', '가천대', 1440, 4)
+        .some((trip) => trip.legs.length === 1 && trip.legs[0].line === '수인분당선'),
+    true
+);
+
+test(
+    '15. 홍대입구 → 신도림 → 온수 환승',
     (() => {
         const trips = findTrips([
             {
@@ -170,7 +184,7 @@ test(
 );
 
 test(
-    '14. 가산디지털단지 → 온수 직행',
+    '16. 가산디지털단지 → 온수 직행',
     (() => {
         const trips = findTrips([
             {
@@ -185,7 +199,7 @@ test(
 );
 
 test(
-    '15. 같은 노선 열차 환승 조합 제외',
+    '17. 같은 노선 열차 환승 조합 제외',
     findTrips([
         {
             no: 'L7-1',
@@ -202,7 +216,7 @@ test(
 );
 
 test(
-    '16. 순환 열차에서 출발역 다음 도착역 선택',
+    '18. 순환 열차에서 출발역 다음 도착역 선택',
     (() => {
         const trips = findTrips([
             {
@@ -217,7 +231,77 @@ test(
 );
 
 test(
-    '17. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
+    '19. 열차 후보를 여유·추천·지각 위험 순서로 고름',
+    findTripOptions([
+        {
+            no: 'EARLY',
+            line: 'A',
+            stops: [['출발', 90], ['도착', 170]]
+        },
+        {
+            no: 'BEST',
+            line: 'A',
+            stops: [['출발', 100], ['도착', 190]]
+        },
+        {
+            no: 'LATE',
+            line: 'A',
+            stops: [['출발', 110], ['도착', 210]]
+        }
+    ], '출발', '도착', 200, 4).map((option) => [
+        option.kind,
+        option.legs[0].no,
+        option.lateMin
+    ]),
+    [
+        ['early', 'EARLY', 0],
+        ['best', 'BEST', 0],
+        ['late', 'LATE', 10]
+    ]
+);
+
+test(
+    '20. 첫 열차가 같은 후보는 빠른 도착 하나만 남김',
+    findTripOptions([
+        {
+            no: 'FIRST',
+            line: 'A',
+            stops: [['출발', 100], ['환승', 110]]
+        },
+        {
+            no: 'NEXT-FAST',
+            line: 'B',
+            stops: [['환승', 114], ['도착', 180]]
+        },
+        {
+            no: 'NEXT-SLOW',
+            line: 'B',
+            stops: [['환승', 115], ['도착', 190]]
+        }
+    ], '출발', '도착', 200, 4).map((option) => [
+        option.legs[0].no,
+        option.arr
+    ]),
+    [['FIRST', 180]]
+);
+
+test(
+    '21. 저장한 첫 열차 번호로 후보를 선택함',
+    calcPlan({
+        type: 'trip',
+        fromStation: '가좌',
+        toStation: '온수',
+        walkMin: 0,
+        lastWalkMin: 0,
+        prepMin: 0,
+        slackMin: 5,
+        transferMin: 4
+    }, '08:48', 'weekday', 'K5025').train,
+    460
+);
+
+test(
+    '22. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
     (() => {
         const ics = buildIcs({
             mon: {
