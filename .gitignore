@@ -1,2 +1,6 @@
 .DS_Store
 Thumbs.db
+
+# 레일포털 다운로드 결과 (API 응답 원본, 용량 큼)
+tools/kric_out/
+__pycache__/
