@@ -67,51 +67,10 @@ section h2 {
   margin: 0 0 18px;
 }
 
-.plan-layout {
-  display: grid;
-  gap: 48px;
-  grid-template-columns: 380px minmax(0, 1fr);
-  min-width: 0;
-}
-
-#today-panel,
-.week-table-wrap,
-#plan-grid,
 .plan-card,
-.plan-row,
 .trip-option-text,
 .trip-flow-text {
   min-width: 0;
-}
-
-.plan-table-head {
-  align-items: center;
-  color: var(--muted);
-  display: grid;
-  font-size: 13px;
-  grid-template-columns: 72px minmax(0, 1fr);
-  margin-bottom: -1px;
-  padding: 0 0 8px;
-}
-
-.plan-table-head > span {
-  display: block;
-}
-
-.plan-table-head > div,
-.plan-row {
-  display: grid;
-  grid-template-columns: 72px repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.plan-table-head > div {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-#plan-grid {
-  display: grid;
-  gap: 0;
 }
 
 .plan-card {
@@ -134,83 +93,10 @@ section h2 {
   margin-bottom: 8px;
 }
 
-.plan-row {
-  align-items: center;
-  background: var(--white);
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  min-height: 56px;
-  padding: 12px 8px;
-  text-align: left;
-  width: 100%;
-}
-
-.plan-row:hover,
-.plan-row.selected {
-  background: #f7f8f9;
-}
-
-.plan-row-day,
-.plan-row-arrive,
-.plan-row-time,
-.plan-row-train {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.plan-row-day {
-  color: var(--muted);
-}
-
-.plan-row-arrive,
-.plan-row-time {
-  text-align: right;
-}
-
-.plan-row-train {
-  align-items: center;
-  display: flex;
-  gap: 6px;
-}
-
-.line-dot {
-  background: var(--accent);
-  border-radius: 50%;
-  display: inline-block;
-  flex: 0 0 8px;
-  height: 8px;
-  width: 8px;
-}
-
-.line-1호선 { background: #0052a4; }
-.line-2호선 { background: #00a84d; }
-.line-7호선 { background: #747f00; }
-.line-경의중앙선 { background: #77c4a3; }
-.line-수인분당선 { background: #f5a200; }
-
-.plan-row-empty {
-  color: var(--dim);
-  grid-column: 2 / -1;
-  min-width: 0;
-  text-align: right;
-  word-break: keep-all;
-}
-
 .plan-summary {
   font-size: 17px;
   font-weight: 600;
   margin: 0 0 18px;
-}
-
-.plan-card:not(.today) .plan-summary {
-  margin: 0;
 }
 
 .plan-card.not-going {
@@ -218,7 +104,6 @@ section h2 {
 }
 
 .plan-card,
-.plan-row,
 .plan-summary,
 .trip-flow-text,
 .trip-option-text {
@@ -262,7 +147,7 @@ input[type="number"] {
 
 .trip-flow-item {
   display: grid;
-  grid-template-columns: 48px 24px minmax(0, 1fr);
+  grid-template-columns: 48px 12px minmax(0, 1fr);
   min-height: 42px;
   position: relative;
 }
@@ -274,31 +159,54 @@ input[type="number"] {
 }
 
 .trip-flow-marker {
-  border-left: 2px solid var(--line);
+  border-left: 3px solid transparent;
   display: block;
   position: relative;
+}
+
+.trip-flow-item.train .trip-flow-marker,
+.trip-flow-item.transfer .trip-flow-marker {
+  border-left-color: var(--line-color);
 }
 
 .trip-flow-marker::before {
   background: var(--accent);
   border-radius: 50%;
   content: "";
-  height: 8px;
-  left: -5px;
+  height: 10px;
+  left: -6px;
   position: absolute;
   top: 7px;
+  width: 10px;
+}
+
+.trip-flow-item.train .trip-flow-marker::before {
+  background: var(--line-color);
+}
+
+.trip-flow-item.walk .trip-flow-marker {
+  border-left: 3px dotted var(--muted);
+}
+
+.trip-flow-item.walk .trip-flow-marker::before {
+  background: var(--white);
+  border: 1px solid var(--muted);
+  height: 8px;
+  left: -6px;
   width: 8px;
+}
+
+.trip-flow-item.transfer .trip-flow-marker::before {
+  background: var(--white);
+  border: 2px solid var(--text);
+  height: 10px;
+  left: -7px;
+  width: 10px;
 }
 
 .trip-flow-text {
   padding: 0 0 14px 8px;
 }
-
-.line-1호선 .trip-flow-marker::before { background: #0052a4; }
-.line-2호선 .trip-flow-marker::before { background: #00a84d; }
-.line-7호선 .trip-flow-marker::before { background: #747f00; }
-.line-경의중앙선 .trip-flow-marker::before { background: #77c4a3; }
-.line-수인분당선 .trip-flow-marker::before { background: #f5a200; }
 
 .trip-options {
   border-top: 1px solid var(--line);
@@ -351,28 +259,6 @@ input[type="number"] {
   color: var(--muted);
 }
 
-#alarm-tabs {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin: 0 0 18px;
-}
-
-.alarm-tab {
-  background: var(--white);
-  border: 0;
-  border-radius: 8px;
-  color: var(--muted);
-  cursor: pointer;
-  font-weight: 500;
-  padding: 9px 4px;
-}
-
-.alarm-tab.active {
-  background: var(--text);
-  color: var(--white);
-}
-
 #alarm-list {
   border-bottom: 1px solid var(--line);
   padding: 0 0 18px;
@@ -395,6 +281,12 @@ input[type="number"] {
 
 #download-ics {
   margin-top: 20px;
+}
+
+#download-ics:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 button {
@@ -507,25 +399,6 @@ textarea {
     padding: 24px 16px 48px;
   }
 
-  #plan-grid {
-    display: block;
-  }
-
-  .plan-table-head {
-    display: none;
-  }
-
-  .plan-card.today {
-    padding-bottom: 24px;
-  }
-
-  .plan-layout {
-    display: block;
-  }
-
-  #today-panel {
-    padding-bottom: 24px;
-  }
 }
 
 @media (max-width: 600px) {
@@ -549,10 +422,6 @@ textarea {
     align-items: flex-start;
     flex-direction: column;
     gap: 0;
-  }
-
-  .week-table-wrap {
-    display: none;
   }
 
   .week-row {
