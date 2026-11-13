@@ -41,10 +41,12 @@ function pickTrain(trainMins, arriveMin, rideMin, slackMin) {
     return picked;
 }
 
+// 분을 자정 기준 0~1439 범위로 정규화합니다.
 function normalizeMinute(minute) {
     return minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute;
 }
 
+// 추천 경로와 도착 분, 요일 유형을 받아 추천 열차 계획과 대안 목록을 반환합니다.
 function calcTripPlan(route, arriveMin, dayType, choice) {
     const fields = ['walkMin', 'lastWalkMin', 'prepMin', 'slackMin', 'transferMin'];
     if (fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
@@ -165,7 +167,9 @@ function calcWeek(routes, week, holidays) {
 }
 
 const stationIndexCache = new WeakMap();
+const collectTripsCache = new WeakMap();
 
+// 열차 배열의 역별 정차 위치 목록을 한 번 만들어 재사용합니다.
 function getStationIndex(trips) {
     let stationIndex = stationIndexCache.get(trips);
     if (stationIndex) return stationIndex;
@@ -181,12 +185,26 @@ function getStationIndex(trips) {
     return stationIndex;
 }
 
-// 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
+// 열차 데이터와 역·환승 시간을 기준으로 가능한 직행·1회 환승 경로를 캐시해 반환합니다.
 function collectTrips(trips, fromStation, toStation, transferMin) {
+    const tripList = Array.isArray(trips) ? trips : [];
+    let routeCache = collectTripsCache.get(tripList);
+    if (!routeCache) {
+        routeCache = new Map();
+        collectTripsCache.set(tripList, routeCache);
+    }
+    const cacheKey = `${fromStation}|${toStation}|${transferMin}`;
+    const cached = routeCache.get(cacheKey);
+    if (cached) {
+        return cached.map((trip) => ({
+            ...trip,
+            legs: trip.legs.map((leg) => ({ ...leg }))
+        }));
+    }
+
     const findStopIndexAfter = (stops, station, startIndex) => stops.findIndex(
         ([stopStation], index) => index > startIndex && stopStation === station
     );
-    const tripList = Array.isArray(trips) ? trips : [];
     const stationIndex = getStationIndex(tripList);
 
     const fromTrips = stationIndex.get(fromStation) || [];
@@ -261,9 +279,14 @@ function collectTrips(trips, fromStation, toStation, transferMin) {
         });
     });
 
-    return results;
+    routeCache.set(cacheKey, results);
+    return results.map((trip) => ({
+        ...trip,
+        legs: trip.legs.map((leg) => ({ ...leg }))
+    }));
 }
 
+// 테스트에서 사용하는 호환용 추천 함수로, 마감 전 경로를 최대 3개 반환합니다.
 function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
     return collectTrips(trips, fromStation, toStation, transferMin)
         .filter((trip) => trip.arr <= deadlineMin)
@@ -271,6 +294,7 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         .slice(0, 3);
 }
 
+// 도착 시각 기준으로 여유·추천·빠듯·지각 후보를 반환합니다.
 function findTripOptions(
     trips,
     fromStation,

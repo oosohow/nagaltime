@@ -369,6 +369,51 @@ test(
     true
 );
 
+test(
+    '27. 추천 열차 안내 문장',
+    buildPlanHint({
+        depart: toMin('07:45'),
+        train: toMin('07:57'),
+        kind: 'best',
+        legs: [{ from: '가좌', line: '경의중앙선' }]
+    }, { type: 'trip' }),
+    '07:45에 나가면 07:57 가좌 경의중앙선을 여유 있게 탈 수 있어요'
+);
+
+test(
+    '28. 빠듯한 열차 안내 문장',
+    buildPlanHint({
+        depart: toMin('07:50'),
+        train: toMin('08:02'),
+        kind: 'tight',
+        legs: [{ from: '가좌', line: '경의중앙선' }]
+    }, { type: 'trip' }),
+    '07:50에 나가면 08:02 가좌 경의중앙선을 탈 수 있지만 빠듯해요'
+);
+
+test(
+    '29. 지각 열차와 직접 입력 안내 문장',
+    {
+        trip: buildPlanHint({
+            depart: toMin('11:53'),
+            train: toMin('12:05'),
+            kind: 'late',
+            lateMin: 4,
+            legs: [{ from: '가좌', line: '경의중앙선' }]
+        }, { type: 'trip' }),
+        custom: buildPlanHint({
+            depart: toMin('07:45'),
+            train: toMin('07:57'),
+            kind: 'best',
+            legs: []
+        }, { type: 'custom' })
+    },
+    {
+        trip: '11:53에 나가면 12:05 가좌 경의중앙선을 타는데 4분 늦어요',
+        custom: '07:45에 나가면 07:57 열차를 여유 있게 탈 수 있어요'
+    }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
