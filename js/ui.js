@@ -211,9 +211,12 @@ function renderPlanCard(dayKey, week, routes, plans) {
     const firstLeg = result.legs && result.legs[0];
     const hint = document.createElement('p');
     hint.className = 'plan-hint';
+    const timingHint = result.kind === 'late'
+        ? `${result.lateMin}분 늦게 도착해요`
+        : result.kind === 'tight' ? '빠듯하게' : '여유 있게';
     hint.textContent = route.type === 'trip' && firstLeg
-        ? `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을 여유 있게 탈 수 있어요`
-        : `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} 열차를 여유 있게 탈 수 있어요`;
+        ? `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을 ${timingHint}`
+        : `${toHHMM(result.depart)}에 나가면 ${toHHMM(result.train)} 열차를 ${timingHint}`;
     main.appendChild(hint);
     renderPlanDetails(main, result, route, dayKey, choices);
     card.replaceChildren(main, choices);

@@ -353,6 +353,22 @@ test(
     { wake: true, alert: true, alarms: 2 }
 );
 
+test(
+    '25. 가산디지털단지 → 온수 후보에 도봉산 환승이 없다',
+    findTripOptions(TRIPS.weekday, '가산디지털단지', '온수', toMin('09:00'), 4)
+        .some((option) => option.legs.some((leg) => leg.from === '도봉산' || leg.to === '도봉산')),
+    false
+);
+
+test(
+    '26. 같은 계산을 두 번 해도 결과가 같다',
+    isEqual(
+        findTripOptions(TRIPS.weekday, '가산디지털단지', '온수', toMin('09:00'), 4),
+        findTripOptions(TRIPS.weekday, '가산디지털단지', '온수', toMin('09:00'), 4)
+    ),
+    true
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;

@@ -84,6 +84,8 @@ function calcTripPlan(route, arriveMin, dayType, choice) {
         legs: selected.legs,
         late: selected.kind === 'late',
         tight: selected.kind === 'tight',
+        kind: selected.kind,
+        lateMin: selected.lateMin,
         options,
         choice: selected.legs[0].no
     };
@@ -291,8 +293,13 @@ function findTripOptions(
         arriveDest: trip.arr + lastWalkMin,
         slack: arriveMin - (trip.arr + lastWalkMin)
     }));
+    const efficientCandidates = candidates.filter((candidate) => !candidates.some((other) => (
+        other !== candidate
+        && other.dep >= candidate.dep
+        && other.arr < candidate.arr
+    )));
     const deadlineMin = arriveMin - slackMin;
-    const onTime = candidates
+    const onTime = efficientCandidates
         .filter((trip) => trip.arriveDest <= deadlineMin)
         .sort((first, second) => second.dep - first.dep || first.arr - second.arr);
     if (onTime.length === 0) return [];
@@ -301,7 +308,7 @@ function findTripOptions(
     const early = onTime
         .slice(1, 3)
         .map((trip) => ({ ...trip, kind: 'early', lateMin: 0 }));
-    const nextCandidate = candidates
+    const nextCandidate = efficientCandidates
         .filter((trip) => trip.dep > best.dep)
         .sort((first, second) => first.dep - second.dep || first.arr - second.arr)[0];
     const next = nextCandidate
