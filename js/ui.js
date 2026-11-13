@@ -65,7 +65,14 @@ function renderTripOptions(card, result, dayKey) {
             ? '여유'
             : `지각 위험 ${option.lateMin}분`;
         const text = document.createElement('span');
-        text.textContent = `${routeText.join(' → ')} → ${toHHMM(lastLeg.arr)} 도착 · ${kindText}`;
+        text.className = 'trip-option-text';
+        const route = document.createElement('span');
+        route.textContent = `${routeText.join(' → ')} → ${toHHMM(lastLeg.arr)} 도착`;
+        text.appendChild(route);
+        const kind = document.createElement('span');
+        kind.className = `trip-option-kind${option.kind === 'best' ? ' recommended' : ''}`;
+        kind.textContent = kindText;
+        text.appendChild(kind);
         label.append(radio, text);
         options.appendChild(label);
     });
@@ -77,30 +84,36 @@ function renderPlanDetails(card, result, route, dayKey) {
         const flow = document.createElement('div');
         flow.className = 'trip-flow';
 
-        const addFlowItem = (text) => {
-            const item = document.createElement('p');
-            item.textContent = text;
+        const addFlowItem = (time, text, line = '') => {
+            const item = document.createElement('div');
+            item.className = `trip-flow-item${line ? ` line-${line.replace(/[^a-zA-Z0-9가-힣]/g, '-')}` : ''}`;
+            const timeElement = document.createElement('time');
+            timeElement.textContent = time;
+            const marker = document.createElement('span');
+            marker.className = 'trip-flow-marker';
+            const textElement = document.createElement('span');
+            textElement.className = 'trip-flow-text';
+            textElement.textContent = text;
+            item.append(timeElement, marker, textElement);
             flow.appendChild(item);
         };
-
-        addFlowItem(`${toHHMM(result.wake)} 일어나기`);
-        addFlowItem(`${toHHMM(result.depart)} 집에서 출발`);
 
         result.legs.forEach((leg, index) => {
             if (index > 0) {
                 const previousLeg = result.legs[index - 1];
                 addFlowItem(
-                    `${toHHMM(previousLeg.arr)} ${previousLeg.to}에서 갈아타기 → ` +
-                    `${toHHMM(leg.dep)} ${leg.line} (${leg.no})`
+                    toHHMM(leg.dep),
+                    `${previousLeg.to} ${leg.line} ${toHHMM(leg.dep)} 환승`,
+                    leg.line
                 );
             } else {
-                addFlowItem(`${toHHMM(leg.dep)} ${leg.from} ${leg.line} (${leg.no})`);
+                addFlowItem(toHHMM(leg.dep), `${leg.from} ${leg.line}`, leg.line);
             }
         });
 
         const lastLeg = result.legs[result.legs.length - 1];
-        addFlowItem(`${toHHMM(lastLeg.arr)} ${lastLeg.to} 도착`);
-        addFlowItem(`${toHHMM(result.arriveEst)} 목적지 도착 (여유 ${result.slack}분)`);
+        addFlowItem(toHHMM(lastLeg.arr), `${lastLeg.to} 도착`);
+        addFlowItem(toHHMM(result.arriveEst), `목적지 도착 (여유 ${result.slack}분)`);
         card.appendChild(flow);
 
         renderTripOptions(card, result, dayKey);
@@ -136,7 +149,8 @@ function renderPlanCard(dayKey, todayKey, week, routes, plans) {
     const card = document.createElement('article');
     card.className = `plan-card${dayKey === todayKey ? ' today' : ''}`;
     const heading = document.createElement('h3');
-    heading.textContent = UI_DAY_LABELS[dayKey];
+    heading.textContent = dayKey === todayKey ? '오늘' : UI_DAY_LABELS[dayKey];
+    heading.className = 'plan-day';
     card.appendChild(heading);
 
     const dayPlan = week[dayKey];
@@ -155,6 +169,25 @@ function renderPlanCard(dayKey, todayKey, week, routes, plans) {
         return card;
     }
 
+    const planSummary = document.createElement('p');
+    planSummary.className = 'plan-summary';
+    planSummary.textContent = dayKey === todayKey
+        ? `오늘 · ${route.name} ${dayPlan.arrive} 도착`
+        : `${route.name} ${dayPlan.arrive} 도착`;
+    card.insertBefore(planSummary, heading.nextSibling);
+
+    const keyTimes = document.createElement('div');
+    keyTimes.className = 'key-times';
+    [
+        ['일어나기', result.wake],
+        ['출발', result.depart]
+    ].forEach(([label, minute]) => {
+        const time = document.createElement('p');
+        time.className = label === '출발' ? 'key-time accent' : 'key-time';
+        time.textContent = `${label} ${toHHMM(minute)}`;
+        keyTimes.appendChild(time);
+    });
+    card.appendChild(keyTimes);
     renderPlanDetails(card, result, route, dayKey);
     return card;
 }

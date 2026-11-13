@@ -15,6 +15,10 @@
 
     <section>
       <h2>요일별 계획표</h2>
+      <div class="plan-table-head" aria-hidden="true">
+        <span>요일</span>
+        <div><span>도착</span><span>기상</span><span>출발</span><span>첫 열차</span></div>
+      </div>
       <div id="plan-grid"></div>
     </section>
 
@@ -25,11 +29,13 @@
       <button id="download-ics" type="button">캘린더로 보내기</button>
     </section>
 
-    <section>
-      <h2>요일별 도착 시간</h2>
-      <p id="week-empty-message" hidden>먼저 경로를 등록해 주세요</p>
-      <div id="week-inputs"></div>
-    </section>
+    <details id="week-registration">
+      <summary>요일별 도착 시간</summary>
+      <section>
+        <p id="week-empty-message" hidden>먼저 경로를 등록해 주세요</p>
+        <div id="week-inputs"></div>
+      </section>
+    </details>
 
     <details id="route-registration" open>
       <summary>경로 등록</summary>
