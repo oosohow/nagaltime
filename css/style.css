@@ -559,3 +559,112 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* 선택한 요일만 표시하는 계획 화면 */
+#day-tabs {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 24px;
+}
+
+.day-tab {
+  background: var(--white);
+  border: 0;
+  border-radius: 8px;
+  color: var(--text);
+  min-width: 0;
+  padding: 10px 4px;
+  white-space: nowrap;
+}
+
+.day-tab.active {
+  background: var(--text);
+  color: var(--white);
+}
+
+.day-tab.not-going {
+  color: var(--dim);
+}
+
+#selected-plan {
+  display: grid;
+  gap: 32px 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
+}
+
+#selected-plan > .plan-card {
+  display: contents;
+}
+
+.selected-plan-main,
+.selected-plan-choices {
+  min-width: 0;
+  word-break: keep-all;
+}
+
+.selected-plan-main {
+  grid-column: 1;
+}
+
+.selected-plan-choices {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.selected-plan-main > .plan-day {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.selected-plan-main .trip-flow,
+.selected-plan-main .plan-error {
+  min-width: 0;
+}
+
+#selected-plan > #alarm-list {
+  border-bottom: 0;
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  padding: 0;
+}
+
+#selected-plan > #download-ics {
+  grid-column: 2;
+  grid-row: 3;
+  margin-top: 0;
+  min-width: 0;
+}
+
+#selected-plan > #alarm-list > p {
+  word-break: keep-all;
+}
+
+@media (max-width: 899px) {
+  #selected-plan {
+    display: block;
+  }
+
+  #selected-plan > .plan-card {
+    display: block;
+  }
+
+  .selected-plan-choices {
+    margin-top: 24px;
+  }
+
+  #selected-plan > #alarm-list {
+    border-bottom: 1px solid var(--line);
+    margin-top: 24px;
+    padding-bottom: 18px;
+  }
+
+  #selected-plan > #download-ics {
+    margin-top: 20px;
+  }
+}
