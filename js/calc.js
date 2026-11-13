@@ -41,6 +41,54 @@ function pickTrain(trainMins, arriveMin, rideMin, slackMin) {
     return picked;
 }
 
+function normalizeMinute(minute) {
+    return minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute;
+}
+
+function calcTripPlan(route, arriveMin, dayType, choice) {
+    const fields = ['walkMin', 'lastWalkMin', 'prepMin', 'slackMin', 'transferMin'];
+    if (fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
+        return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
+    }
+
+    const trips = dayType === 'weekday' ? TRIPS.weekday : TRIPS.holiday;
+    const options = findTripOptions(
+        trips,
+        route.fromStation,
+        route.toStation,
+        arriveMin,
+        route.transferMin,
+        route.lastWalkMin,
+        route.slackMin
+    );
+    if (options.length === 0) {
+        return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
+    }
+
+    const selected = options.find((option) => option.legs[0].no === choice) || options.find(
+        (option) => option.kind === 'best'
+    ) || options[0];
+    const departRaw = selected.dep - route.walkMin;
+    const wakeRaw = departRaw - route.prepMin;
+    const alertRaw = departRaw - 10;
+
+    return {
+        ok: true,
+        train: selected.legs[0].dep,
+        depart: normalizeMinute(departRaw),
+        wake: normalizeMinute(wakeRaw),
+        alert: normalizeMinute(alertRaw),
+        arriveEst: normalizeMinute(selected.arriveDest),
+        slack: arriveMin - selected.arriveDest,
+        prevDay: wakeRaw < 0,
+        legs: selected.legs,
+        late: selected.kind === 'late',
+        tight: selected.kind === 'tight',
+        options,
+        choice: selected.legs[0].no
+    };
+}
+
 // 경로와 도착 시각, 요일 유형을 받아 하루 이동 계획 또는 오류 객체를 반환합니다.
 function calcPlan(route, arriveText, dayType, choice) {
     if (typeof arriveText !== 'string' || toMin(arriveText) === null) {
@@ -60,53 +108,6 @@ function calcPlan(route, arriveText, dayType, choice) {
         return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
     }
 
-    // 추천 경로와 도착 분, 요일 유형을 받아 추천 열차 계획과 대안 목록을 반환합니다.
-    function calcTripPlan(route, arriveMin, dayType, choice) {
-        const fields = ['walkMin', 'lastWalkMin', 'prepMin', 'slackMin', 'transferMin'];
-        if (fields.some((field) => typeof route[field] !== 'number' || route[field] < 0)) {
-            return { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' };
-        }
-
-        const trips = dayType === 'weekday' ? TRIPS.weekday : TRIPS.holiday;
-        const options = findTripOptions(
-            trips,
-            route.fromStation,
-            route.toStation,
-            arriveMin,
-            route.transferMin,
-            route.lastWalkMin,
-            route.slackMin
-        );
-        if (options.length === 0) {
-            return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
-        }
-
-        const selected = options.find((option) => option.legs[0].no === choice) || options.find(
-            (option) => option.kind === 'best'
-        ) || options[0];
-        const departRaw = selected.dep - route.walkMin;
-        const wakeRaw = departRaw - route.prepMin;
-        const alertRaw = departRaw - 10;
-        const arriveEstRaw = selected.arriveDest;
-        const normalize = (minute) => (minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute);
-
-        return {
-            ok: true,
-            train: selected.legs[0].dep,
-            depart: normalize(departRaw),
-            wake: normalize(wakeRaw),
-            alert: normalize(alertRaw),
-            arriveEst: normalize(arriveEstRaw),
-            slack: arriveMin - arriveEstRaw,
-            prevDay: wakeRaw < 0,
-            legs: selected.legs,
-            late: selected.kind === 'late',
-            tight: selected.kind === 'tight',
-            options,
-            choice: selected.legs[0].no
-        };
-    }
-
     const trainTimes = getTrainTimes(route);
     if (!Array.isArray(trainTimes)) return trainTimes;
 
@@ -120,15 +121,13 @@ function calcPlan(route, arriveText, dayType, choice) {
     const wakeRaw = departRaw - route.prepMin;
     const alertRaw = departRaw - 10;
     const arriveEstRaw = train + route.rideMin;
-    const normalize = (minute) => (minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute);
-
     return {
         ok: true,
         train,
-        depart: normalize(departRaw),
-        wake: normalize(wakeRaw),
-        alert: normalize(alertRaw),
-        arriveEst: normalize(arriveEstRaw),
+        depart: normalizeMinute(departRaw),
+        wake: normalizeMinute(wakeRaw),
+        alert: normalizeMinute(alertRaw),
+        arriveEst: normalizeMinute(arriveEstRaw),
         slack: arriveMin - arriveEstRaw,
         prevDay: wakeRaw < 0
     };
@@ -163,20 +162,30 @@ function calcWeek(routes, week, holidays) {
     return results;
 }
 
-// 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
-function collectTrips(trips, fromStation, toStation, transferMin) {
-    const findStopIndexAfter = (stops, station, startIndex) => stops.findIndex(
-        ([stopStation], index) => index > startIndex && stopStation === station
-    );
-    const stationIndex = new Map();
-    const tripList = Array.isArray(trips) ? trips : [];
+const stationIndexCache = new WeakMap();
 
-    tripList.forEach((trip) => {
+function getStationIndex(trips) {
+    let stationIndex = stationIndexCache.get(trips);
+    if (stationIndex) return stationIndex;
+
+    stationIndex = new Map();
+    trips.forEach((trip) => {
         trip.stops.forEach(([station], index) => {
             if (!stationIndex.has(station)) stationIndex.set(station, []);
             stationIndex.get(station).push({ trip, index });
         });
     });
+    stationIndexCache.set(trips, stationIndex);
+    return stationIndex;
+}
+
+// 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
+function collectTrips(trips, fromStation, toStation, transferMin) {
+    const findStopIndexAfter = (stops, station, startIndex) => stops.findIndex(
+        ([stopStation], index) => index > startIndex && stopStation === station
+    );
+    const tripList = Array.isArray(trips) ? trips : [];
+    const stationIndex = getStationIndex(tripList);
 
     const fromTrips = stationIndex.get(fromStation) || [];
     const results = [];
