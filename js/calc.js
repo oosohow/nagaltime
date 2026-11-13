@@ -7,27 +7,21 @@ function getDayType(dayKey, isHoliday) {
     return 'weekday';
 }
 
-// 경로와 시간표 유형을 받아 정렬된 열차 시각 분 배열 또는 오류 객체를 반환합니다.
-function getTrainTimes(route, dayType) {
-    const timeTexts = route && Array.isArray(route.customTimes)
-        ? route.customTimes
-        : route && TIMETABLE[route.line]
-            && TIMETABLE[route.line][route.station]
-            && TIMETABLE[route.line][route.station][route.direction]
-            && TIMETABLE[route.line][route.station][route.direction][dayType];
-
+// 직접 입력한 열차 시각을 정렬된 분 배열 또는 오류 객체로 반환합니다.
+function getTrainTimes(route) {
+    const timeTexts = route && route.customTimes;
     if (!Array.isArray(timeTexts) || timeTexts.length === 0) {
-        return { ok: false, message: '이 역의 시간표가 없습니다. 열차 시각을 직접 입력해 주세요.' };
+        return { ok: false, message: '열차 시각을 입력해 주세요.' };
     }
 
     const trainMins = [];
     for (const timeText of timeTexts) {
         if (typeof timeText !== 'string') {
-            return { ok: false, message: '이 역의 시간표가 없습니다. 열차 시각을 직접 입력해 주세요.' };
+            return { ok: false, message: '열차 시각은 HH:MM 형식이어야 합니다.' };
         }
         const minute = toMin(timeText);
         if (minute === null) {
-            return { ok: false, message: '이 역의 시간표가 없습니다. 열차 시각을 직접 입력해 주세요.' };
+            return { ok: false, message: '열차 시각은 HH:MM 형식이어야 합니다.' };
         }
         trainMins.push(minute);
     }
@@ -51,6 +45,10 @@ function pickTrain(trainMins, arriveMin, rideMin, slackMin) {
 function calcPlan(route, arriveText, dayType) {
     if (typeof arriveText !== 'string' || toMin(arriveText) === null) {
         return { ok: false, message: '도착 시간을 HH:MM 형식으로 입력해 주세요.' };
+    }
+
+    if (!route || (route.type !== 'trip' && route.type !== 'custom')) {
+        return { ok: false, message: '예전 경로 형식입니다. 경로를 다시 등록해 주세요.' };
     }
 
     if (route.type === 'trip') {
@@ -103,7 +101,7 @@ function calcPlan(route, arriveText, dayType) {
         };
     }
 
-    const trainTimes = getTrainTimes(route, dayType);
+    const trainTimes = getTrainTimes(route);
     if (!Array.isArray(trainTimes)) return trainTimes;
 
     const arriveMin = toMin(arriveText);
@@ -156,6 +154,9 @@ function calcWeek(routes, week, holidays) {
 
 // 열차 데이터와 출발·도착역, 도착 마감, 환승 시간을 받아 가능한 직행·1회 환승 경로를 반환합니다.
 function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
+    const findStopIndexAfter = (stops, station, startIndex) => stops.findIndex(
+        ([stopStation], index) => index > startIndex && stopStation === station
+    );
     const stationIndex = new Map();
     const tripList = Array.isArray(trips) ? trips : [];
 
@@ -171,9 +172,7 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
 
     fromTrips.forEach(({ trip: firstTrip, index: fromIndex }) => {
         const fromStop = firstTrip.stops[fromIndex];
-        const directToIndex = firstTrip.stops.findIndex(
-            ([station], index) => index > fromIndex && station === toStation
-        );
+        const directToIndex = findStopIndexAfter(firstTrip.stops, toStation, fromIndex);
         if (directToIndex !== -1) {
             const toStop = firstTrip.stops[directToIndex];
             if (toStop[1] <= deadlineMin) {
@@ -198,19 +197,20 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
                 .map(([station]) => station)
         );
         transferStations.forEach((transferStation) => {
-            const transferIndex = firstTrip.stops.findIndex(
-                ([station], index) => index > fromIndex && station === transferStation
-            );
+            const transferIndex = findStopIndexAfter(firstTrip.stops, transferStation, fromIndex);
             const transferArrival = firstTrip.stops[transferIndex][1];
             const nextTrips = stationIndex.get(transferStation) || [];
 
             nextTrips.forEach(({ trip: secondTrip, index: transferDepartureIndex }) => {
                 if (secondTrip === firstTrip) return;
+                if (secondTrip.line === firstTrip.line) return;
                 const transferDeparture = secondTrip.stops[transferDepartureIndex][1];
                 if (transferDeparture < transferArrival + transferMin) return;
 
-                const destinationIndex = secondTrip.stops.findIndex(
-                    ([station], index) => index > transferDepartureIndex && station === toStation
+                const destinationIndex = findStopIndexAfter(
+                    secondTrip.stops,
+                    toStation,
+                    transferDepartureIndex
                 );
                 if (destinationIndex === -1) return;
 
