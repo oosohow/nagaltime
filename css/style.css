@@ -618,7 +618,7 @@ main > .plan-section {
 }
 
 .side-panel .week-row {
-  grid-template-columns: minmax(0, 1fr) 128px;
+  grid-template-columns: minmax(0, 1fr) 160px;
   gap: 6px 8px;
 }
 
