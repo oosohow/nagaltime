@@ -15,11 +15,16 @@
 
     <section>
       <h2>요일별 계획표</h2>
-      <div class="plan-table-head" aria-hidden="true">
-        <span>요일</span>
-        <div><span>도착</span><span>기상</span><span>출발</span><span>첫 열차</span></div>
+      <div class="plan-layout">
+        <div id="today-panel"></div>
+        <div class="week-table-wrap">
+          <div class="plan-table-head" aria-hidden="true">
+            <span>요일</span>
+            <div><span>도착</span><span>기상</span><span>출발</span><span>첫 열차</span></div>
+          </div>
+          <div id="plan-grid"></div>
+        </div>
       </div>
-      <div id="plan-grid"></div>
     </section>
 
     <section>

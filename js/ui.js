@@ -11,6 +11,7 @@ const UI_DAY_LABELS = {
     sun: '일요일'
 };
 let selectedAlarmDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+let selectedPlanDayKey = selectedAlarmDayKey;
 
 function handleIcsDownload() {
     const routes = loadRoutes();
@@ -145,11 +146,11 @@ function renderPlanDetails(card, result, route, dayKey) {
     });
 }
 
-function renderPlanCard(dayKey, todayKey, week, routes, plans) {
+function renderPlanCard(dayKey, week, routes, plans) {
     const card = document.createElement('article');
-    card.className = `plan-card${dayKey === todayKey ? ' today' : ''}`;
+    card.className = 'plan-card today';
     const heading = document.createElement('h3');
-    heading.textContent = dayKey === todayKey ? '오늘' : UI_DAY_LABELS[dayKey];
+    heading.textContent = UI_DAY_LABELS[dayKey];
     heading.className = 'plan-day';
     card.appendChild(heading);
 
@@ -171,9 +172,7 @@ function renderPlanCard(dayKey, todayKey, week, routes, plans) {
 
     const planSummary = document.createElement('p');
     planSummary.className = 'plan-summary';
-    planSummary.textContent = dayKey === todayKey
-        ? `오늘 · ${route.name} ${dayPlan.arrive} 도착`
-        : `${route.name} ${dayPlan.arrive} 도착`;
+    planSummary.textContent = `${UI_DAY_LABELS[dayKey]} · ${route.name} ${dayPlan.arrive} 도착`;
     card.insertBefore(planSummary, heading.nextSibling);
 
     const keyTimes = document.createElement('div');
@@ -192,16 +191,71 @@ function renderPlanCard(dayKey, todayKey, week, routes, plans) {
     return card;
 }
 
+function renderWeekRow(dayKey, selectedDayKey, week, routes, plans) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `plan-row${dayKey === selectedDayKey ? ' selected' : ''}`;
+    row.addEventListener('click', () => {
+        selectedPlanDayKey = dayKey;
+        selectedAlarmDayKey = dayKey;
+        renderPlan();
+    });
+
+    const day = document.createElement('span');
+    day.className = 'plan-row-day';
+    day.textContent = UI_DAY_LABELS[dayKey];
+    const dayPlan = week[dayKey];
+    const route = dayPlan && routes.find((item) => item.id === dayPlan.routeId);
+    const result = plans[dayKey];
+    row.appendChild(day);
+
+    if (!dayPlan || !route || !result || !result.ok) {
+        const empty = document.createElement('span');
+        empty.className = 'plan-row-empty';
+        empty.textContent = '안 감';
+        row.appendChild(empty);
+        return row;
+    }
+
+    [
+        ['plan-row-arrive', dayPlan.arrive],
+        ['plan-row-time', toHHMM(result.wake)],
+        ['plan-row-time', toHHMM(result.depart)]
+    ].forEach(([className, textContent]) => {
+        const value = document.createElement('span');
+        value.className = className;
+        value.textContent = textContent;
+        row.appendChild(value);
+    });
+
+    const firstTrain = document.createElement('span');
+    firstTrain.className = 'plan-row-train';
+    const dot = document.createElement('i');
+    dot.className = `line-dot line-${(result.legs?.[0]?.line || '').replace(/[^a-zA-Z0-9가-힣]/g, '-')}`;
+    const trainText = document.createElement('span');
+    trainText.textContent = result.legs?.[0]
+        ? `${toHHMM(result.legs[0].dep)} ${result.legs[0].from}`
+        : `${toHHMM(result.train)} 열차`;
+    firstTrain.append(dot, trainText);
+    row.appendChild(firstTrain);
+    return row;
+}
+
 function renderPlan() {
     const grid = document.getElementById('plan-grid');
+    const todayPanel = document.getElementById('today-panel');
     const routes = loadRoutes();
     const week = loadWeek();
     const plans = calcWeek(routes, week, []);
-    const todayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+    if (!UI_DAY_KEYS.includes(selectedPlanDayKey)) selectedPlanDayKey = UI_DAY_KEYS[0];
 
     grid.replaceChildren();
+    todayPanel.replaceChildren();
+    const selectedCard = renderPlanCard(selectedPlanDayKey, week, routes, plans);
+    selectedCard.querySelector('.plan-day').textContent = '오늘';
+    todayPanel.appendChild(selectedCard);
     UI_DAY_KEYS.forEach((dayKey) => {
-        grid.appendChild(renderPlanCard(dayKey, todayKey, week, routes, plans));
+        grid.appendChild(renderWeekRow(dayKey, selectedPlanDayKey, week, routes, plans));
     });
     renderAlarmList(routes, week, plans);
 }
