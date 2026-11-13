@@ -68,13 +68,14 @@ function calcPlan(route, arriveText, dayType, choice) {
         }
 
         const trips = dayType === 'weekday' ? TRIPS.weekday : TRIPS.holiday;
-        const deadlineMin = arriveMin - route.slackMin - route.lastWalkMin;
         const options = findTripOptions(
             trips,
             route.fromStation,
             route.toStation,
-            deadlineMin,
-            route.transferMin
+            arriveMin,
+            route.transferMin,
+            route.lastWalkMin,
+            route.slackMin
         );
         if (options.length === 0) {
             return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
@@ -86,7 +87,7 @@ function calcPlan(route, arriveText, dayType, choice) {
         const departRaw = selected.dep - route.walkMin;
         const wakeRaw = departRaw - route.prepMin;
         const alertRaw = departRaw - 10;
-        const arriveEstRaw = selected.arr + route.lastWalkMin;
+        const arriveEstRaw = selected.arriveDest;
         const normalize = (minute) => (minute < 0 ? minute + 1440 : minute >= 1440 ? minute - 1440 : minute);
 
         return {
@@ -100,6 +101,7 @@ function calcPlan(route, arriveText, dayType, choice) {
             prevDay: wakeRaw < 0,
             legs: selected.legs,
             late: selected.kind === 'late',
+            tight: selected.kind === 'tight',
             options,
             choice: selected.legs[0].no
         };
@@ -258,7 +260,15 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         .slice(0, 3);
 }
 
-function findTripOptions(trips, fromStation, toStation, deadlineMin, transferMin) {
+function findTripOptions(
+    trips,
+    fromStation,
+    toStation,
+    arriveMin,
+    transferMin,
+    lastWalkMin = 0,
+    slackMin = 0
+) {
     const uniqueTrips = new Map();
     collectTrips(trips, fromStation, toStation, transferMin).forEach((trip) => {
         const firstLeg = trip.legs[0];
@@ -267,9 +277,14 @@ function findTripOptions(trips, fromStation, toStation, deadlineMin, transferMin
         if (!previous || trip.arr < previous.arr) uniqueTrips.set(key, trip);
     });
 
-    const candidates = [...uniqueTrips.values()];
+    const candidates = [...uniqueTrips.values()].map((trip) => ({
+        ...trip,
+        arriveDest: trip.arr + lastWalkMin,
+        slack: arriveMin - (trip.arr + lastWalkMin)
+    }));
+    const deadlineMin = arriveMin - slackMin;
     const onTime = candidates
-        .filter((trip) => trip.arr <= deadlineMin)
+        .filter((trip) => trip.arriveDest <= deadlineMin)
         .sort((first, second) => second.dep - first.dep || first.arr - second.arr);
     if (onTime.length === 0) return [];
 
@@ -277,16 +292,18 @@ function findTripOptions(trips, fromStation, toStation, deadlineMin, transferMin
     const early = onTime
         .slice(1, 3)
         .map((trip) => ({ ...trip, kind: 'early', lateMin: 0 }));
-    const lateCandidate = candidates
-        .filter((trip) => trip.dep > best.dep && trip.arr > deadlineMin)
-        .map((trip) => ({ ...trip, lateMin: trip.arr - deadlineMin }))
-        .filter((trip) => trip.lateMin <= 30)
-        .sort((first, second) => first.arr - second.arr || first.dep - second.dep)[0];
-    const late = lateCandidate
-        ? [{ ...lateCandidate, kind: 'late' }]
+    const nextCandidate = candidates
+        .filter((trip) => trip.dep > best.dep)
+        .sort((first, second) => first.dep - second.dep || first.arr - second.arr)[0];
+    const next = nextCandidate
+        ? [{
+            ...nextCandidate,
+            kind: nextCandidate.arriveDest <= arriveMin ? 'tight' : 'late',
+            lateMin: Math.max(0, nextCandidate.arriveDest - arriveMin)
+        }]
         : [];
 
-    return [...early, best, ...late].sort(
+    return [...early, best, ...next].sort(
         (first, second) => first.dep - second.dep || first.arr - second.arr
     );
 }

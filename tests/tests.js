@@ -261,7 +261,39 @@ test(
 );
 
 test(
-    '20. 첫 열차가 같은 후보는 빠른 도착 하나만 남김',
+    '20. 목적지 실제 도착 기준으로 빠듯한 후보를 표시',
+    findTripOptions([
+        { no: 'BEST', line: 'A', stops: [['출발', 780], ['도착', 790]] },
+        { no: 'TIGHT', line: 'A', stops: [['출발', 785], ['도착', 796]] }
+    ], '출발', '도착', 810, 4, 10, 5).map((option) => [
+        option.kind,
+        option.arriveDest,
+        option.slack
+    ]),
+    [
+        ['best', 800, 10],
+        ['tight', 806, 4]
+    ]
+);
+
+test(
+    '21. 목적지 실제 도착 기준으로 지각 후보를 표시',
+    findTripOptions([
+        { no: 'BEST', line: 'A', stops: [['출발', 780], ['도착', 790]] },
+        { no: 'LATE', line: 'A', stops: [['출발', 785], ['도착', 802]] }
+    ], '출발', '도착', 810, 4, 10, 5).map((option) => [
+        option.kind,
+        option.arriveDest,
+        option.lateMin
+    ]),
+    [
+        ['best', 800, 0],
+        ['late', 812, 2]
+    ]
+);
+
+test(
+    '22. 첫 열차가 같은 후보는 빠른 도착 하나만 남김',
     findTripOptions([
         {
             no: 'FIRST',
@@ -286,7 +318,7 @@ test(
 );
 
 test(
-    '21. 저장한 첫 열차 번호로 후보를 선택함',
+    '23. 저장한 첫 열차 번호로 후보를 선택함',
     calcPlan({
         type: 'trip',
         fromStation: '가좌',
@@ -301,7 +333,7 @@ test(
 );
 
 test(
-    '22. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
+    '24. buildIcs 결과에 기상과 출발 알림이 둘 다 있다',
     (() => {
         const ics = buildIcs({
             mon: {

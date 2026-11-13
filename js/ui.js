@@ -37,7 +37,7 @@ function renderTripOptions(card, result, dayKey) {
 
     result.options.forEach((option, index) => {
         const label = document.createElement('label');
-        label.className = option.kind === 'late' ? 'trip-option late' : 'trip-option';
+        label.className = `trip-option ${option.kind}`;
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = `trip-choice-${dayKey}`;
@@ -60,14 +60,16 @@ function renderTripOptions(card, result, dayKey) {
         });
         const lastLeg = option.legs[option.legs.length - 1];
         const kindText = option.kind === 'best'
-            ? '추천'
+            ? `추천 · 여유 ${option.slack}분`
             : option.kind === 'early'
-            ? '여유'
-            : `지각 위험 ${option.lateMin}분`;
+            ? `여유 ${option.slack}분`
+            : option.kind === 'tight'
+            ? `빠듯 · 여유 ${option.slack}분`
+            : `지각 ${option.lateMin}분`;
         const text = document.createElement('span');
         text.className = 'trip-option-text';
         const route = document.createElement('span');
-        route.textContent = `${routeText.join(' → ')} → ${toHHMM(lastLeg.arr)} 도착`;
+        route.textContent = `${routeText.join(' → ')} → ${toHHMM(option.arriveDest)} 도착`;
         text.appendChild(route);
         const kind = document.createElement('span');
         kind.className = `trip-option-kind${option.kind === 'best' ? ' recommended' : ''}`;
