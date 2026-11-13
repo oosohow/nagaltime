@@ -541,3 +541,111 @@ textarea {
     margin-top: 20px;
   }
 }
+
+/* 전체 레이아웃: 제목, 왼쪽 설정 패널, 오른쪽 계획 */
+main {
+  max-width: 1440px;
+  padding: 24px 32px 48px;
+  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "panel plan";
+  column-gap: 40px;
+  align-items: start;
+}
+
+.app-header {
+  grid-area: header;
+}
+
+main > .plan-section {
+  grid-area: plan;
+  border-bottom: 0;
+  padding-top: 24px;
+}
+
+.side-panel {
+  grid-area: panel;
+  margin-top: 24px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-width: 0;
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: var(--line);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.panel-tab {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 0;
+  font-weight: 600;
+  margin: 0;
+  width: auto;
+}
+
+.panel-tab.active {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.panel-body {
+  min-width: 0;
+}
+
+.side-panel .week-row {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.side-panel .week-row input,
+.side-panel .week-row select {
+  width: 100%;
+}
+
+#selected-plan {
+  grid-template-rows: auto auto 1fr;
+  row-gap: 24px;
+  align-items: start;
+}
+
+.selected-plan-main {
+  grid-row: 1 / span 3;
+}
+
+#selected-plan > #alarm-list {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+@media (max-width: 899px) {
+  main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "plan"
+      "panel";
+    padding: 20px 16px 40px;
+  }
+
+  .side-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    margin-top: 0;
+  }
+}
