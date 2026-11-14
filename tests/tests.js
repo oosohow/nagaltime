@@ -457,6 +457,43 @@ test(
     }
 );
 
+test(
+    '33. 같은 첫 열차로 도착이 같으면 더 늦게 갈아타는 경로를 고름',
+    (() => {
+        const viaYongsan = {
+            arr: 516,
+            legs: [{ to: '용산', dep: 460 }, { from: '용산', dep: 477 }]
+        };
+        const viaHoegi = {
+            arr: 516,
+            legs: [{ to: '회기', dep: 460 }, { from: '회기', dep: 505 }]
+        };
+        return {
+            hoegiFirst: isBetterTrip(viaHoegi, viaYongsan),
+            yongsanFirst: isBetterTrip(viaYongsan, viaHoegi)
+        };
+    })(),
+    { hoegiFirst: true, yongsanFirst: false }
+);
+
+test(
+    '34. 환승역을 회기로 지정하면 회기 환승 후보만 나옴',
+    (() => {
+        const options = findTripOptions(TRIPS.weekday, '가좌', '월계', toMin('09:00'), 2, 10, 5, '회기');
+        return {
+            hasOptions: options.length > 0,
+            allHoegi: options.every((item) => item.legs.length === 1 || item.legs[0].to === '회기')
+        };
+    })(),
+    { hasOptions: true, allHoegi: true }
+);
+
+test(
+    '35. 지나지 않는 환승역을 지정하면 후보가 없음',
+    findTripOptions(TRIPS.weekday, '가좌', '월계', toMin('09:00'), 2, 10, 5, '없는 역'),
+    []
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;

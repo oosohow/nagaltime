@@ -107,6 +107,12 @@
           <details>
             <summary>더 보기</summary>
             <label>
+              환승역 (선택)
+              <input id="trip-via" name="viaStation" list="trip-stations" autocomplete="off" placeholder="비워 두면 자동으로 찾아요">
+              <small>예: 회기. 이 역에서 갈아타는 열차만 추천해요</small>
+              <span class="field-error" id="trip-via-error"></span>
+            </label>
+            <label>
               최소 여유(분)
               <input id="trip-slack-min" name="tripSlackMin" type="number" min="0" value="5">
               <span class="field-error" id="trip-slack-error"></span>
@@ -119,8 +125,10 @@
           </details>
         </div>
 
-        <button id="route-submit" type="submit">저장</button>
-        <button id="route-cancel" type="button" hidden>취소</button>
+        <div class="form-actions">
+          <button id="route-submit" type="submit">저장</button>
+          <button id="route-cancel" class="secondary" type="button" hidden>취소</button>
+        </div>
       </form>
       <div id="routes-list"></div>
       </div>

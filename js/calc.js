@@ -61,7 +61,8 @@ function calcTripPlan(route, arriveMin, dayType, choice) {
         arriveMin,
         route.transferMin,
         route.lastWalkMin,
-        route.slackMin
+        route.slackMin,
+        route.viaStation || ''
     );
     if (options.length === 0) {
         return { ok: false, message: '도착 시간에 맞는 열차가 없습니다.' };
@@ -294,6 +295,20 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         .slice(0, 3);
 }
 
+// 같은 첫 열차의 두 경로 중 남길 경로인지 판단합니다. 더 일찍 도착하는 경로, 도착이 같으면 더 늦게 갈아타는 경로를 고릅니다.
+function isBetterTrip(trip, previous) {
+    if (trip.arr !== previous.arr) return trip.arr < previous.arr;
+    const transferDep = trip.legs.length > 1 ? trip.legs[1].dep : Infinity;
+    const previousTransferDep = previous.legs.length > 1 ? previous.legs[1].dep : Infinity;
+    return transferDep > previousTransferDep;
+}
+
+// 환승역을 지정했으면 직행과 그 역에서 갈아타는 경로만 남깁니다.
+function matchesViaStation(trip, viaStation) {
+    if (!viaStation) return true;
+    return trip.legs.length === 1 || trip.legs[0].to === viaStation;
+}
+
 // 도착 시각 기준으로 여유·추천·빠듯·지각 후보를 반환합니다.
 function findTripOptions(
     trips,
@@ -302,15 +317,18 @@ function findTripOptions(
     arriveMin,
     transferMin,
     lastWalkMin = 0,
-    slackMin = 0
+    slackMin = 0,
+    viaStation = ''
 ) {
     const uniqueTrips = new Map();
-    collectTrips(trips, fromStation, toStation, transferMin).forEach((trip) => {
-        const firstLeg = trip.legs[0];
-        const key = `${firstLeg.no}|${firstLeg.dep}`;
-        const previous = uniqueTrips.get(key);
-        if (!previous || trip.arr < previous.arr) uniqueTrips.set(key, trip);
-    });
+    collectTrips(trips, fromStation, toStation, transferMin)
+        .filter((trip) => matchesViaStation(trip, viaStation))
+        .forEach((trip) => {
+            const firstLeg = trip.legs[0];
+            const key = `${firstLeg.no}|${firstLeg.dep}`;
+            const previous = uniqueTrips.get(key);
+            if (!previous || isBetterTrip(trip, previous)) uniqueTrips.set(key, trip);
+        });
 
     const candidates = [...uniqueTrips.values()].map((trip) => ({
         ...trip,
@@ -320,7 +338,8 @@ function findTripOptions(
     const efficientCandidates = candidates.filter((candidate) => !candidates.some((other) => (
         other !== candidate
         && other.dep >= candidate.dep
-        && other.arr < candidate.arr
+        && other.arr <= candidate.arr
+        && (other.dep > candidate.dep || other.arr < candidate.arr)
     )));
     const deadlineMin = arriveMin - slackMin;
     const onTime = efficientCandidates
