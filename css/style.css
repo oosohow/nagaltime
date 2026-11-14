@@ -284,8 +284,10 @@ input[type="number"] {
   margin: 10px 0;
 }
 
-.alarm-item::first-letter {
+.alarm-item strong {
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
+  margin-right: 8px;
 }
 
 #download-ics {
@@ -677,5 +679,161 @@ main > .plan-section {
     max-height: none;
     overflow: visible;
     margin-top: 0;
+  }
+}
+
+/* 휴대폰 화면 보완: 한글 줄바꿈, 열차 후보, 보조 버튼, 더 보기 */
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+small {
+  font-size: 13px;
+}
+
+.trip-option {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.trip-option:last-child {
+  border-bottom: 0;
+}
+
+.trip-option input {
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.trip-option-text,
+.trip-option.late .trip-option-text,
+.trip-option.tight .trip-option-text {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trip-option-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.trip-option-legs {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.trip-option-kind {
+  font-size: 13px;
+  text-align: right;
+}
+
+.trip-option.tight .trip-option-kind {
+  color: #d97706;
+}
+
+.trip-option.late .trip-option-kind {
+  color: var(--danger);
+}
+
+.trip-option.late .trip-option-time {
+  color: var(--danger);
+}
+
+.trip-option.tight .trip-option-time {
+  color: #d97706;
+}
+
+.trip-option.tight,
+.trip-option.late {
+  color: var(--text);
+}
+
+button.secondary {
+  background: var(--line);
+  color: var(--text);
+}
+
+button.secondary.danger {
+  color: var(--danger);
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+#week-registration summary,
+#route-registration summary {
+  color: var(--text);
+  font-size: 15px;
+  list-style-position: inside;
+  padding: 4px 0;
+}
+
+#route-registration details > label {
+  margin-top: 14px;
+}
+
+#routes-list p {
+  font-size: 14px;
+  margin: 4px 0 10px;
+}
+
+@media (max-width: 600px) {
+  .app-header h1 {
+    font-size: 24px;
+  }
+
+  .key-time {
+    font-size: 28px;
+  }
+
+  .trip-option {
+    gap: 10px;
+  }
+}
+
+.key-time {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.key-times {
+  gap: 40px;
+}
+
+.key-time-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.app-header p {
+  text-wrap: balance;
+}
+
+@media (max-width: 600px) {
+  .key-times {
+    gap: 40px;
+  }
+
+  .side-panel .week-row {
+    grid-template-columns: minmax(0, 1fr) 132px;
   }
 }

@@ -56,11 +56,6 @@ function renderTripOptions(card, result, dayKey) {
         });
 
         const firstLeg = option.legs[0];
-        const routeText = [`${toHHMM(firstLeg.dep)} ${firstLeg.line}`];
-        option.legs.slice(1).forEach((leg) => {
-            routeText.push(`${toHHMM(leg.dep)} ${leg.line}`);
-        });
-        const lastLeg = option.legs[option.legs.length - 1];
         const kindText = option.kind === 'best'
             ? `추천 · 여유 ${option.slack}분`
             : option.kind === 'early'
@@ -70,14 +65,17 @@ function renderTripOptions(card, result, dayKey) {
             : `지각 ${option.lateMin}분`;
         const text = document.createElement('span');
         text.className = 'trip-option-text';
-        const route = document.createElement('span');
-        route.textContent = `${routeText.join(' → ')} → ${toHHMM(option.arriveDest)} 도착`;
-        text.appendChild(route);
+        const time = document.createElement('span');
+        time.className = 'trip-option-time';
+        time.textContent = `${toHHMM(firstLeg.dep)} → ${toHHMM(option.arriveDest)} 도착`;
+        const legs = document.createElement('span');
+        legs.className = 'trip-option-legs';
+        legs.textContent = formatLegs(option.legs);
+        text.append(time, legs);
         const kind = document.createElement('span');
         kind.className = `trip-option-kind${option.kind === 'best' ? ' recommended' : ''}`;
         kind.textContent = kindText;
-        text.appendChild(kind);
-        label.append(radio, text);
+        label.append(radio, text, kind);
         options.appendChild(label);
     });
     card.appendChild(options);
@@ -139,27 +137,15 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
         return;
     }
 
-    const destination = document.createElement('p');
-    destination.textContent = `목적지: ${route.name}`;
-    card.appendChild(destination);
-
     const details = [
-        ['기상', toHHMM(result.wake), result.prevDay ? '전날' : ''],
-        ['출발', toHHMM(result.depart), ''],
-        ['탈 열차', toHHMM(result.train), ''],
-        ['도착 예상', toHHMM(result.arriveEst), ''],
-        ['여유', `${result.slack}분`, result.slack <= route.slackMin + 5 ? '빠듯' : '']
+        ['탈 열차', toHHMM(result.train)],
+        ['도착 예상', toHHMM(result.arriveEst)],
+        ['여유', `${result.slack}분`]
     ];
-    details.forEach(([label, value, note]) => {
+    details.forEach(([label, value]) => {
         const detail = document.createElement('p');
-        detail.className = label === '기상' || label === '출발' ? 'key-time' : '';
-        detail.textContent = `${label}: ${value}`;
-        if (note) {
-            const noteElement = document.createElement('span');
-            noteElement.className = `status-badge ${note === '빠듯' ? 'tight' : 'prev-day'}`;
-            noteElement.textContent = ` (${note})`;
-            detail.appendChild(noteElement);
-        }
+        detail.className = 'plan-detail';
+        detail.textContent = `${label} ${value}`;
         card.appendChild(detail);
     });
 }
@@ -215,12 +201,17 @@ function renderPlanCard(dayKey, week, routes, plans) {
     const keyTimes = document.createElement('div');
     keyTimes.className = 'key-times';
     [
-        ['일어나기', result.wake],
+        [result.prevDay ? '일어나기 (전날)' : '일어나기', result.wake],
         ['출발', result.depart]
     ].forEach(([label, minute]) => {
         const time = document.createElement('p');
         time.className = label === '출발' ? 'key-time accent' : 'key-time';
-        time.textContent = `${label} ${toHHMM(minute)}`;
+        const labelElement = document.createElement('span');
+        labelElement.className = 'key-time-label';
+        labelElement.textContent = label;
+        const value = document.createElement('span');
+        value.textContent = toHHMM(minute);
+        time.append(labelElement, value);
         keyTimes.appendChild(time);
     });
     main.appendChild(keyTimes);
@@ -295,7 +286,9 @@ function renderAlarmList(routes, week, plans, dayKey) {
     ].sort((first, second) => first[1] - second[1]).forEach(([name, minute]) => {
         const alarm = document.createElement('p');
         alarm.className = 'alarm-item';
-        alarm.textContent = `${toHHMM(minute)} ${name}`;
+        const alarmTime = document.createElement('strong');
+        alarmTime.textContent = toHHMM(minute);
+        alarm.append(alarmTime, ` ${name}`);
         list.appendChild(alarm);
     });
 }
@@ -321,6 +314,19 @@ function showPanel(panelId) {
     });
 }
 
+// 열차 구간 목록을 '경의중앙선 → 회기 1호선'처럼 짧은 문장으로 만듭니다.
+function formatLegs(legs) {
+    if (legs.length === 1) return `${legs[0].line} 직행`;
+    return legs.map((leg, index) => (index === 0 ? leg.line : `${leg.from} ${leg.line}`)).join(' → ');
+}
+
+// 추천 경로의 출발역·환승역·도착역을 한 줄로 만듭니다.
+function formatTripRoute(route) {
+    return route.viaStation
+        ? `${route.fromStation} → ${route.viaStation} 환승 → ${route.toStation}`
+        : `${route.fromStation} → ${route.toStation}`;
+}
+
 function renderRoutes() {
     const list = document.getElementById('routes-list');
     const routes = loadRoutes();
@@ -332,7 +338,7 @@ function renderRoutes() {
         title.textContent = route.name;
         const detail = document.createElement('p');
         detail.textContent = route.type === 'trip'
-            ? `${route.fromStation} → ${route.toStation} (열차 추천)`
+            ? `${formatTripRoute(route)} (열차 추천)`
             : route.type === 'custom'
             ? `직접 입력: ${route.customTimes.join(', ')}`
             : '예전 경로 형식 · 다시 등록 필요';
@@ -345,6 +351,7 @@ function renderRoutes() {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.textContent = '삭제';
+        deleteButton.className = 'secondary danger';
         deleteButton.addEventListener('click', () => {
             if (editingRouteId === route.id) resetRouteForm();
             deleteRoute(route.id);
@@ -355,6 +362,7 @@ function renderRoutes() {
         const editButton = document.createElement('button');
         editButton.type = 'button';
         editButton.textContent = '수정';
+        editButton.className = 'secondary';
         editButton.addEventListener('click', () => startRouteEdit(route));
         const actions = document.createElement('div');
         actions.className = 'route-actions';
@@ -477,6 +485,8 @@ function startRouteEdit(route) {
         document.getElementById('trip-prep-min').value = route.prepMin;
         document.getElementById('trip-slack-min').value = route.slackMin;
         document.getElementById('trip-transfer-min').value = route.transferMin;
+        document.getElementById('trip-via').value = route.viaStation || '';
+        if (route.viaStation) document.querySelector('#trip-fields details').open = true;
     } else {
         document.getElementById('custom-times-input').value = route.customTimes.join(', ');
         document.getElementById('walk-min').value = route.walkMin;
@@ -537,6 +547,14 @@ function handleRouteSubmit(event) {
             showError('trip-to-error', '도착역을 목록에서 선택해 주세요.');
             valid = false;
         }
+        const tripVia = document.getElementById('trip-via').value.trim();
+        if (tripVia && !tripStations.includes(tripVia)) {
+            showError('trip-via-error', '환승역을 목록에서 선택하거나 비워 두세요.');
+            valid = false;
+        } else if (tripVia && (tripVia === tripFrom || tripVia === tripTo)) {
+            showError('trip-via-error', '환승역은 출발역·도착역과 달라야 합니다.');
+            valid = false;
+        }
         tripValues = [
             ['trip-walk-min', 'trip-walk-error', '집에서 출발역까지 시간'],
             ['trip-last-walk-min', 'trip-last-walk-error', '도착역에서 목적지까지 시간'],
@@ -558,7 +576,8 @@ function handleRouteSubmit(event) {
             lastWalkMin: tripValues[1],
             prepMin: tripValues[2],
             slackMin: tripValues[3],
-            transferMin: tripValues[4]
+            transferMin: tripValues[4],
+            viaStation: document.getElementById('trip-via').value.trim()
         }
         : {
             name,
