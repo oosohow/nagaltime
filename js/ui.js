@@ -615,20 +615,24 @@ function handleRouteSubmit(event) {
     if (routeType === 'custom' && values.some((value) => value === null)) valid = false;
 
     let tripValues = null;
+    let tripFrom = null;
+    let tripTo = null;
+    let tripVia = '';
     if (routeType === 'trip') {
-        const tripFrom = document.getElementById('trip-from').value.trim();
-        const tripTo = document.getElementById('trip-to').value.trim();
         const tripStations = getTripStationNames();
-        if (!tripStations.includes(tripFrom)) {
+        tripFrom = resolveStationName(document.getElementById('trip-from').value, tripStations);
+        tripTo = resolveStationName(document.getElementById('trip-to').value, tripStations);
+        const viaText = document.getElementById('trip-via').value.trim();
+        tripVia = viaText ? resolveStationName(viaText, tripStations) : '';
+        if (!tripFrom) {
             showError('trip-from-error', '출발역을 목록에서 선택해 주세요.');
             valid = false;
         }
-        if (!tripStations.includes(tripTo)) {
+        if (!tripTo) {
             showError('trip-to-error', '도착역을 목록에서 선택해 주세요.');
             valid = false;
         }
-        const tripVia = document.getElementById('trip-via').value.trim();
-        if (tripVia && !tripStations.includes(tripVia)) {
+        if (tripVia === null) {
             showError('trip-via-error', '환승역을 목록에서 선택하거나 비워 두세요.');
             valid = false;
         } else if (tripVia && (tripVia === tripFrom || tripVia === tripTo)) {
@@ -650,14 +654,14 @@ function handleRouteSubmit(event) {
         ? {
             name,
             type: 'trip',
-            fromStation: document.getElementById('trip-from').value.trim(),
-            toStation: document.getElementById('trip-to').value.trim(),
+            fromStation: tripFrom,
+            toStation: tripTo,
             walkMin: tripValues[0],
             lastWalkMin: tripValues[1],
             prepMin: tripValues[2],
             slackMin: tripValues[3],
             transferMin: tripValues[4],
-            viaStation: document.getElementById('trip-via').value.trim()
+            viaStation: tripVia
         }
         : {
             name,

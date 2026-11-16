@@ -48,6 +48,20 @@ const KRIC_LINES = {
 const THROUGH_LINES = ['3호선', '4호선', '7호선', '8호선'];
 // 사용하지 않는 코레일 노선 (파일 크기를 줄이려고 trips.js에서 뺌)
 const EXCLUDED_LINES = ['경춘선', '서해선'];
+// 이름은 같지만 실제로는 떨어져 있어 갈아탈 수 없는 역 (노선 이름을 붙여 구분)
+const SEPARATE_STATIONS = {
+    경의중앙선: { 신촌: '신촌(경의중앙선)', 양평: '양평(경의중앙선)' }
+};
+
+// 같은 이름의 다른 역을 노선별 이름으로 바꿉니다.
+function renameSeparateStations(trip) {
+    const renames = SEPARATE_STATIONS[trip.line];
+    if (!renames) return trip;
+    return {
+        ...trip,
+        stops: trip.stops.map(([station, minute]) => [renames[station] || station, minute])
+    };
+}
 
 const KRIC_LINE_NAMES = Object.values(KRIC_LINES);
 
@@ -251,6 +265,8 @@ function writeTrips(existing, kricTrips, seoulLine2Trips, filePath) {
         ...kricTrips.holiday.filter((trip) => trip.line !== '2호선'),
         ...seoulLine2Trips,
     );
+    merged.weekday = merged.weekday.map(renameSeparateStations);
+    merged.holiday = merged.holiday.map(renameSeparateStations);
 
     const header = [
         '// 열차별 정차 시각 데이터 (열차 추천·환승 계산용)',
