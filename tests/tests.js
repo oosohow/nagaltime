@@ -536,6 +536,29 @@ test(
     }
 );
 
+test(
+    '39. 3호선: 일산선 대화에서 종로3가까지 갈아타지 않고 직행',
+    (() => {
+        const options = findTripOptions(TRIPS.weekday, '대화', '종로3가', toMin('09:00'), 4, 5, 5);
+        const best = options.find((item) => item.kind === 'best');
+        return best ? best.legs.map((leg) => leg.line) : null;
+    })(),
+    ['3호선']
+);
+
+test(
+    '40. 9호선: 11/16 개편 시간표(05:40~07:00 급행 2대·일반 1대) 반영',
+    (() => {
+        const trains = TRIPS.weekday
+            .filter((trip) => trip.line === '9호선' && trip.stops.some(([station]) => station === '중앙보훈병원'))
+            .filter((trip) => ['개화', '김포공항'].includes(trip.stops[0][0]))
+            .filter((trip) => trip.stops[0][1] >= toMin('05:40') && trip.stops[0][1] < toMin('07:00'));
+        const express = trains.filter((trip) => !trip.stops.some(([station]) => station === '공항시장')).length;
+        return { express, local: trains.length - express };
+    })(),
+    { express: 13, local: 6 }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
