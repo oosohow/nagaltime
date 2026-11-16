@@ -494,6 +494,48 @@ test(
     []
 );
 
+test(
+    '36. 5호선: 가좌 → 공덕 → 광화문 환승 추천',
+    (() => {
+        const options = findTripOptions(TRIPS.weekday, '가좌', '광화문', toMin('09:00'), 4, 5, 5);
+        const best = options.find((item) => item.kind === 'best');
+        return best ? best.legs.map((leg) => `${leg.line} ${leg.to}`) : null;
+    })(),
+    ['경의중앙선 공덕', '5호선 광화문']
+);
+
+test(
+    '37. 6호선: 응암순환 구간을 지나 공덕까지 직행',
+    (() => {
+        const options = findTripOptions(TRIPS.weekday, '응암', '공덕', toMin('09:00'), 4, 5, 5);
+        const best = options.find((item) => item.kind === 'best');
+        return best ? best.legs.map((leg) => leg.line) : null;
+    })(),
+    ['6호선']
+);
+
+test(
+    '38. 시간 막대 구간을 모두 더하면 기상부터 도착 시간까지와 같음',
+    (() => {
+        const route = {
+            type: 'trip', fromStation: '가좌', toStation: '온수',
+            walkMin: 12, lastWalkMin: 12, prepMin: 75, slackMin: 5, transferMin: 4
+        };
+        const plan = calcPlan(route, '09:00', 'weekday');
+        const segments = getTimeSegments(plan);
+        return {
+            sum: segments.reduce((total, segment) => total + segment.minutes, 0),
+            total: toMin('09:00') - plan.wake,
+            types: segments.map((segment) => segment.type)
+        };
+    })(),
+    {
+        sum: 150,
+        total: 150,
+        types: ['prep', 'walk', 'train', 'wait', 'train', 'walk', 'slack']
+    }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
