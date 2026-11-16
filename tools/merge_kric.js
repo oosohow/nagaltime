@@ -28,13 +28,28 @@ const STATION_NAMES = {
     '온수(성공회대입구)': '온수',
     '온수': '온수',
     '가산디': '가산디지털단지',
-    '가산디지털단지': '가산디지털단지'
+    '가산디지털단지': '가산디지털단지',
+    '하남검단산역': '하남검단산',
+    '암사역사공원': '암사역사공원'
 };
 const KRIC_LINES = {
     '2': '2호선',
+    '3': '3호선',
+    '4': '4호선',
+    '5': '5호선',
+    '6': '6호선',
     '7': '7호선',
+    '8': '8호선',
+    '9': '9호선',
+    A1: '공항철도',
     K1: '수인분당선'
 };
+// 운영 회사가 달라도 같은 열차번호로 이어 달리는 노선 (회사 구분 없이 열차 하나로 묶음)
+const THROUGH_LINES = ['3호선', '4호선', '7호선', '8호선'];
+// 사용하지 않는 코레일 노선 (파일 크기를 줄이려고 trips.js에서 뺌)
+const EXCLUDED_LINES = ['경춘선', '서해선'];
+
+const KRIC_LINE_NAMES = Object.values(KRIC_LINES);
 
 function readInput(filePath) {
     if (!fs.existsSync(filePath)) {
@@ -152,7 +167,7 @@ function buildTrips(rawData) {
             const trainNo = row && row[0];
             if (!trainNo) continue;
 
-            const groupKey = line === '7호선'
+            const groupKey = THROUGH_LINES.includes(line)
                 ? `${dayType}|${line}|${trainNo}`
                 : `${dayType}|${operator}|${line}|${trainNo}`;
             if (!groups.has(groupKey)) {
@@ -228,8 +243,8 @@ function buildSeoulLine2WeekendTrips(rawData) {
 
 function writeTrips(existing, kricTrips, seoulLine2Trips, filePath) {
     const merged = {
-        weekday: existing.weekday.filter((trip) => !['2호선', '7호선', '수인분당선'].includes(trip.line)),
-        holiday: existing.holiday.filter((trip) => !['2호선', '7호선', '수인분당선'].includes(trip.line))
+        weekday: existing.weekday.filter((trip) => !KRIC_LINE_NAMES.includes(trip.line) && !EXCLUDED_LINES.includes(trip.line)),
+        holiday: existing.holiday.filter((trip) => !KRIC_LINE_NAMES.includes(trip.line) && !EXCLUDED_LINES.includes(trip.line))
     };
     merged.weekday.push(...kricTrips.weekday);
     merged.holiday.push(

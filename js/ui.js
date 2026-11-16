@@ -81,6 +81,75 @@ function renderTripOptions(card, result, dayKey) {
     card.appendChild(options);
 }
 
+// 일어나서 목적지 도착까지를 준비·도보·열차·환승·여유 구간 목록(분 단위)으로 나눕니다.
+function getTimeSegments(result) {
+    const legs = result.legs;
+    const lastLeg = legs[legs.length - 1];
+    const segments = [
+        { type: 'prep', label: '준비', minutes: (result.depart - result.wake + 1440) % 1440 },
+        { type: 'walk', label: '도보', minutes: legs[0].dep - result.depart }
+    ];
+    legs.forEach((leg, index) => {
+        if (index > 0) {
+            segments.push({ type: 'wait', label: '환승', minutes: leg.dep - legs[index - 1].arr });
+        }
+        segments.push({ type: 'train', label: leg.line.replace(/^(.*[^호])선$/, '$1'), line: leg.line, minutes: leg.arr - leg.dep });
+    });
+    segments.push({ type: 'walk', label: '도보', minutes: result.arriveEst - lastLeg.arr });
+    segments.push({ type: 'slack', label: '여유', minutes: result.slack });
+    return segments.filter((segment) => segment.minutes > 0);
+}
+
+// 일어나서 목적지에 도착할 때까지를 준비·도보·열차·환승·여유 길이로 보여 주는 아침 막대를 만듭니다.
+function renderTimeBar(result, lineColors) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'time-bar-wrap';
+    const title = document.createElement('p');
+    title.className = 'time-bar-title';
+    title.textContent = '일어나서 도착까지';
+    const arriveMin = result.arriveEst + result.slack;
+    const total = (arriveMin - result.wake + 1440) % 1440;
+    const head = document.createElement('p');
+    head.className = 'time-bar-head';
+    const hours = Math.floor(total / 60);
+    const totalText = hours > 0 ? `${hours}시간 ${total % 60}분` : `${total}분`;
+    const strong = document.createElement('strong');
+    strong.textContent = totalText;
+    head.append(strong, ` ${toHHMM(result.wake)} 기상 → ${toHHMM(normalizeMinute(arriveMin))} 도착`);
+    if (result.slack < 0) {
+        const late = document.createElement('span');
+        late.className = 'time-bar-late';
+        late.textContent = ` · ${-result.slack}분 늦어요`;
+        head.appendChild(late);
+    }
+
+    const bar = document.createElement('div');
+    bar.className = 'time-bar';
+    const labels = document.createElement('div');
+    labels.className = 'time-bar-labels';
+    getTimeSegments(result).forEach((segment) => {
+        const part = document.createElement('span');
+        part.className = `time-bar-part ${segment.type}`;
+        part.style.flexGrow = segment.minutes;
+        if (segment.line) part.style.setProperty('--line-color', lineColors[segment.line] || '#8B95A1');
+        part.textContent = `${segment.minutes}분`;
+        part.title = `${segment.label} ${segment.minutes}분`;
+        bar.appendChild(part);
+
+        const label = document.createElement('span');
+        label.className = `time-bar-label ${segment.type}`;
+        label.style.flexGrow = segment.minutes;
+        if (segment.line) label.style.setProperty('--line-color', lineColors[segment.line] || '#8B95A1');
+        label.textContent = segment.label;
+        labels.appendChild(label);
+    });
+    const legend = document.createElement('p');
+    legend.className = 'time-bar-legend';
+    legend.textContent = '회색은 걷기, 빗금은 환승 대기, 점선은 남는 여유 시간이에요';
+    wrapper.append(title, head, bar, labels, legend);
+    return wrapper;
+}
+
 function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
     if (route.type === 'trip') {
         const flow = document.createElement('div');
@@ -89,7 +158,14 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
         const lineColors = {
             '1호선': '#0052A4',
             '2호선': '#00A84D',
+            '3호선': '#EF7C1C',
+            '4호선': '#00A5DE',
+            '5호선': '#996CAC',
+            '6호선': '#CD7C2F',
             '7호선': '#747F00',
+            '8호선': '#E6186C',
+            '9호선': '#BDB092',
+            '공항철도': '#0090D2',
             '경의중앙선': '#77C4A3',
             '수인분당선': '#F5A200'
         };
@@ -131,7 +207,7 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
             `목적지 도착 (여유 ${result.slack}분)`,
             'walk'
         );
-        card.appendChild(flow);
+        card.append(renderTimeBar(result, lineColors), flow);
 
         renderTripOptions(choiceCard, result, dayKey);
         return;
@@ -252,8 +328,11 @@ function renderPlan() {
     selectedPlan.replaceChildren();
     selectedPlan.appendChild(renderPlanCard(selectedPlanDayKey, week, routes, plans));
     selectedPlan.appendChild(alarmList);
-    calendarButton.textContent = '이번 주 알람을 캘린더로 보내기';
-    calendarButton.disabled = !UI_DAY_KEYS.some((dayKey) => plans[dayKey] && plans[dayKey].ok);
+    const plannedDays = UI_DAY_KEYS.filter((dayKey) => plans[dayKey] && plans[dayKey].ok);
+    calendarButton.disabled = plannedDays.length === 0;
+    calendarButton.textContent = plannedDays.length === 0
+        ? '이번 주에 보낼 알람이 없어요'
+        : `이번 주 알람을 캘린더로 보내기 (${plannedDays.map((dayKey) => UI_DAY_LABELS[dayKey].slice(0, 1)).join('·')})`;
     selectedPlan.appendChild(calendarButton);
     renderAlarmList(routes, week, plans, selectedPlanDayKey);
 }
@@ -363,6 +442,7 @@ function renderRoutes() {
         editButton.type = 'button';
         editButton.textContent = '수정';
         editButton.className = 'secondary';
+        editButton.disabled = route.type !== 'trip' && route.type !== 'custom';
         editButton.addEventListener('click', () => startRouteEdit(route));
         const actions = document.createElement('div');
         actions.className = 'route-actions';

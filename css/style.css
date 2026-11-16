@@ -837,3 +837,146 @@ button.secondary.danger {
     grid-template-columns: minmax(0, 1fr) 132px;
   }
 }
+
+.route-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.route-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* 구간별 시간 막대 */
+.time-bar-wrap {
+  border-top: 1px solid var(--line);
+  margin: 0 0 8px;
+  padding-top: 20px;
+}
+
+.time-bar-title {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+
+.time-bar-head {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.time-bar-head strong {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.time-bar,
+.time-bar-labels {
+  display: flex;
+  gap: 3px;
+}
+
+.time-bar {
+  border-radius: 999px;
+  height: 26px;
+  overflow: hidden;
+}
+
+.time-bar-part {
+  align-items: center;
+  background: var(--line);
+  color: var(--muted);
+  display: flex;
+  flex-basis: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  justify-content: center;
+  min-width: 30px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.time-bar-part.train {
+  background: var(--line-color);
+  color: #fff;
+}
+
+.time-bar-part.wait {
+  background: repeating-linear-gradient(135deg, var(--line) 0 4px, #e5e8eb 4px 8px);
+}
+
+.time-bar-labels {
+  margin-top: 6px;
+}
+
+.time-bar-label {
+  color: var(--line-color);
+  flex-basis: 0;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 30px;
+  overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.time-bar-label.walk,
+.time-bar-label.wait {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.time-bar-part.prep {
+  background: #dce8f7;
+  color: var(--accent);
+}
+
+.time-bar-label.prep {
+  color: var(--accent);
+}
+
+.time-bar-part.slack {
+  background: var(--white);
+  border: 1px dashed var(--dim);
+  border-radius: 0 999px 999px 0;
+  color: var(--muted);
+}
+
+.time-bar-label.slack {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.time-bar-label.train {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .time-bar-label {
+    font-size: 11px;
+  }
+}
+
+.time-bar-label.walk,
+.time-bar-label.wait,
+.time-bar-label.slack {
+  visibility: hidden;
+}
+
+.time-bar-legend {
+  color: var(--dim);
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.time-bar-late {
+  color: var(--danger);
+  font-weight: 600;
+}
