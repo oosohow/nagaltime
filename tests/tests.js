@@ -559,6 +559,27 @@ test(
     { express: 13, local: 6 }
 );
 
+test(
+    '41. 역 이름에 \'역\'이 붙거나 빠져도 찾고, 없는 역은 null',
+    (() => {
+        const names = ['신촌', '서울역', '신촌(경의중앙선)'];
+        return ['신촌역', '신촌', '서울', '서울역', ' 신촌 역 ', '없는역', ''].map((text) => resolveStationName(text, names));
+    })(),
+    ['신촌', '신촌', '서울역', '서울역', '신촌', null, null]
+);
+
+test(
+    '42. 떨어져 있는 2호선 신촌과 경의중앙선 신촌은 갈아타는 역으로 쓰지 않음',
+    (() => {
+        const routes = collectTrips(TRIPS.weekday, '가좌', '이대', 4);
+        return {
+            hasRoute: routes.length > 0,
+            transferAtSinchon: routes.some((route) => route.legs.length > 1 && route.legs[0].to.startsWith('신촌'))
+        };
+    })(),
+    { hasRoute: true, transferAtSinchon: false }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;

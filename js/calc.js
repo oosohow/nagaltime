@@ -295,6 +295,16 @@ function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
         .slice(0, 3);
 }
 
+// 사용자가 입력한 역 이름을 데이터의 역 이름으로 바꿉니다. '신촌역'→'신촌', '서울'→'서울역'처럼 '역'이 붙거나 빠져도 찾고, 없으면 null을 반환합니다.
+function resolveStationName(text, stationNames) {
+    const name = String(text || '').replace(/\s+/g, '');
+    if (!name) return null;
+    if (stationNames.includes(name)) return name;
+    if (name.endsWith('역') && stationNames.includes(name.slice(0, -1))) return name.slice(0, -1);
+    if (stationNames.includes(`${name}역`)) return `${name}역`;
+    return null;
+}
+
 // 같은 첫 열차의 두 경로 중 남길 경로인지 판단합니다. 더 일찍 도착하는 경로, 도착이 같으면 더 늦게 갈아타는 경로를 고릅니다.
 function isBetterTrip(trip, previous) {
     if (trip.arr !== previous.arr) return trip.arr < previous.arr;
