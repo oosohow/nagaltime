@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// 레일포털 다운로드 결과를 data/trips.js에 합치는 스크립트입니다.
+// 레일포털·서울 열린데이터에서 받은 시간표로 data/trips.js를 만드는 스크립트입니다.
 // 실행: node tools/merge_kric.js
 
 const fs = require('fs');
@@ -33,6 +33,7 @@ const STATION_NAMES = {
     '암사역사공원': '암사역사공원'
 };
 const KRIC_LINES = {
+    '1': '1호선',
     '2': '2호선',
     '3': '3호선',
     '4': '4호선',
@@ -42,12 +43,13 @@ const KRIC_LINES = {
     '8': '8호선',
     '9': '9호선',
     A1: '공항철도',
+    K4: '경의중앙선',
     K1: '수인분당선'
 };
 // 운영 회사가 달라도 같은 열차번호로 이어 달리는 노선 (회사 구분 없이 열차 하나로 묶음)
-const THROUGH_LINES = ['3호선', '4호선', '7호선', '8호선'];
-// 사용하지 않는 코레일 노선 (파일 크기를 줄이려고 trips.js에서 뺌)
-const EXCLUDED_LINES = ['경춘선', '서해선'];
+const THROUGH_LINES = ['1호선', '3호선', '4호선', '7호선', '8호선'];
+// 한 열차가 같은 역에 두 번 서는 순환 노선
+const LOOP_LINES = ['2호선', '6호선'];
 // 이름은 같지만 실제로는 떨어져 있어 갈아탈 수 없는 역 (노선 이름을 붙여 구분)
 const SEPARATE_STATIONS = {
     경의중앙선: { 신촌: '신촌(경의중앙선)', 양평: '양평(경의중앙선)' }
@@ -62,8 +64,6 @@ function renameSeparateStations(trip) {
         stops: trip.stops.map(([station, minute]) => [renames[station] || station, minute])
     };
 }
-
-const KRIC_LINE_NAMES = Object.values(KRIC_LINES);
 
 function readInput(filePath) {
     if (!fs.existsSync(filePath)) {
@@ -91,22 +91,6 @@ function readOptionalInput(filePath) {
     return data;
 }
 
-function readTrips(filePath) {
-    const text = fs.readFileSync(filePath, 'utf8');
-    const marker = 'const TRIPS = ';
-    const start = text.indexOf(marker);
-    if (start === -1) {
-        throw new Error('data/trips.js에서 TRIPS 데이터를 찾을 수 없습니다.');
-    }
-
-    const json = text.slice(start + marker.length).trim().replace(/;$/, '');
-    const trips = JSON.parse(json);
-    if (!Array.isArray(trips.weekday) || !Array.isArray(trips.holiday)) {
-        throw new Error('TRIPS에 weekday 또는 holiday 배열이 없습니다.');
-    }
-    return trips;
-}
-
 function toMinutes(value) {
     const text = String(value || '').trim();
     if (!/^(?:\d{2}:){2}\d{2}$/.test(text) && !/^\d{6}$/.test(text)) return null;
@@ -128,9 +112,12 @@ function addStop(group, stationName, row) {
     if (!Array.isArray(row) || row.length < 3) return;
     const minute = toMinutes(row[2]) ?? toMinutes(row[1]);
     if (minute === null) return;
+    const station = normalizeStationName(stationName);
+    // 같은 역이 두 번 나오면 첫 번째만 씀 (2호선 순환, 6호선 응암 순환은 같은 역에 다시 서므로 제외)
+    if (!LOOP_LINES.includes(group.line) && group.stops.some((stop) => stop.station === station)) return;
 
     group.stops.push({
-        station: normalizeStationName(stationName),
+        station,
         minute
     });
 }
@@ -255,12 +242,8 @@ function buildSeoulLine2WeekendTrips(rawData) {
     return trips;
 }
 
-function writeTrips(existing, kricTrips, seoulLine2Trips, filePath) {
-    const merged = {
-        weekday: existing.weekday.filter((trip) => !KRIC_LINE_NAMES.includes(trip.line) && !EXCLUDED_LINES.includes(trip.line)),
-        holiday: existing.holiday.filter((trip) => !KRIC_LINE_NAMES.includes(trip.line) && !EXCLUDED_LINES.includes(trip.line))
-    };
-    merged.weekday.push(...kricTrips.weekday);
+function writeTrips(kricTrips, seoulLine2Trips, filePath) {
+    const merged = { weekday: [...kricTrips.weekday], holiday: [] };
     merged.holiday.push(
         ...kricTrips.holiday.filter((trip) => trip.line !== '2호선'),
         ...seoulLine2Trips,
@@ -270,11 +253,11 @@ function writeTrips(existing, kricTrips, seoulLine2Trips, filePath) {
 
     const header = [
         '// 열차별 정차 시각 데이터 (열차 추천·환승 계산용)',
-        '// 코레일 데이터와 레일포털 데이터를 합친 파일입니다.',
+        '// 레일포털 열차 시각표와 서울 열린데이터(2호선 주말)를 합친 파일입니다.',
         '// 모양: TRIPS[weekday|holiday] = [{ no: 열차번호, line: 노선, stops: [[역 이름, 분], ...] }, ...]',
         '// - 분은 자정부터의 분. 자정을 넘긴 열차는 1440 이상으로 이어서 적습니다.',
         '// - 토요일·일요일·공휴일은 holiday 사용합니다.',
-        '// - 이 파일은 tools/convert_korail.py와 tools/merge_kric.js로 만듭니다. 직접 고치지 마세요.',
+        '// - 이 파일은 tools/merge_kric.js로 만듭니다. 직접 고치지 마세요.',
         ''
     ].join('\n');
     fs.writeFileSync(
@@ -309,10 +292,9 @@ function printLineCounts(trips) {
 function main() {
     const rawData = readInput(INPUT);
     const seoulLine2Data = readOptionalInput(SEOUL_LINE2_INPUT);
-    const existing = readTrips(OUTPUT);
     const kricTrips = buildTrips(rawData);
     const seoulLine2Trips = buildSeoulLine2WeekendTrips(seoulLine2Data);
-    const merged = writeTrips(existing, kricTrips, seoulLine2Trips, OUTPUT);
+    const merged = writeTrips(kricTrips, seoulLine2Trips, OUTPUT);
 
     console.log(`완료: ${OUTPUT}`);
     console.log(`추가한 열차: 평일 ${kricTrips.weekday.length}개, 휴일 ${kricTrips.holiday.length - kricTrips.holiday.filter((trip) => trip.line === '2호선').length + seoulLine2Trips.length}개`);
