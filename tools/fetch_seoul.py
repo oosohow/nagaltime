@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# 나갈시간: 2호선 토요일·휴일 시간표를 서울 열린데이터광장 API(getTrainSch)로 한 번만 받는 스크립트
-# - 레일포털에는 2호선 주말·휴일 데이터가 없어서 이걸로 채움
+# 나갈시간: 2호선 시간표(평일·주말)를 서울 열린데이터광장 API(getTrainSch)로 한 번만 받는 스크립트
+# - 레일포털에는 2호선 주말·휴일 데이터와 평일 지선(성수·신정지선) 데이터가 없어서 이걸로 채움
 # - getTrainSch는 열차 하나가 지나는 역마다 한 줄씩 줌 (열차번호, 역, 도착·출발 시각, 상하행, 요일)
 #   주소: /getTrainSch/{시작}/{끝}/{열차번호(빈칸)}/{임시시간표 N}/{상하행}/{요일}/{노선}
 #   설명: docs/api/서울열린데이터_열차시간표.md
 # - 인증키는 열린데이터광장 "일반 인증키". 파일에 적지 않고 실행할 때 입력
 # - 실행 (프로젝트 폴더에서):
 #     SEOUL_KEY='일반인증키' python3 tools/fetch_seoul.py --check   (어떤 조합에 데이터가 있는지만 확인)
-#     SEOUL_KEY='일반인증키' python3 tools/fetch_seoul.py           (평일이 아닌 조합을 모두 받기)
+#     SEOUL_KEY='일반인증키' python3 tools/fetch_seoul.py           (데이터가 있는 조합을 모두 받기)
 # - 결과: tools/kric_out/seoul_line2.json.gz (.gitignore에 들어 있음)
 import gzip, json, os, subprocess, sys, time, getpass, urllib.parse
 
@@ -85,8 +85,6 @@ def main():
 
     result = {}
     for (direction, day), total in found.items():
-        if day == "평일":
-            continue  # 평일은 레일포털 데이터 사용
         got = []
         for start in range(1, total + 1, PAGE):
             end = min(start + PAGE - 1, total)
