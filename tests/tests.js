@@ -1,15 +1,21 @@
+// 나갈시간 테스트: 각 테스트는 실제 함수의 결과(실제값)와 기대값을 비교하고, 결과를 표와 console.assert로 남깁니다.
+
 const testResults = [];
+// 저장소를 쓰는 테스트가 사용자의 실제 경로·요일 계획을 지우지 않도록 처음 값을 보관했다가 마지막에 되돌립니다.
 const savedRoutesStorage = localStorage.getItem('nagalsigan.routes');
 const savedWeekStorage = localStorage.getItem('nagalsigan.week');
 
+// 두 값을 JSON 문자열로 바꿔 같은지 비교합니다.
 function isEqual(actual, expected) {
     return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
+// 결과 표에 보여 줄 수 있게 값을 들여쓴 JSON으로 바꿉니다.
 function displayValue(value) {
     return JSON.stringify(value, null, 2);
 }
 
+// 테스트 하나를 기록합니다.
 function test(name, actual, expected) {
     const passed = isEqual(actual, expected);
     const result = { name, actual, expected, passed };
@@ -18,12 +24,18 @@ function test(name, actual, expected) {
     return passed;
 }
 
+// 열차 추천 테스트용: 마감 안에 도착하는 경로 중 늦게 출발하는 순서로 최대 3개를 돌려줍니다.
+function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
+    return collectTrips(trips, fromStation, toStation, transferMin)
+        .filter((trip) => trip.arr <= deadlineMin)
+        .sort((first, second) => second.dep - first.dep || first.arr - second.arr)
+        .slice(0, 3);
+}
+
+// 중간고사 계획서 F3의 예시 경로 (열차 07:47·07:57·08:07, 탑승 후 50분, 도보 7분, 준비 80분, 최소 여유 10분)
 const testRoute = {
     id: 'test-route',
     type: 'custom',
-    line: '테스트 노선',
-    station: '테스트 역',
-    direction: '테스트 방향',
     walkMin: 7,
     rideMin: 50,
     prepMin: 80,
