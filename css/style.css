@@ -1,3 +1,5 @@
+/* 나갈시간 화면 스타일: 색 변수와 공통 요소, 계획 화면과 설정 패널을 먼저 두고, 맨 아래에 화면 폭별 조정(899px 이하, 600px 이하)을 둡니다. */
+
 :root {
   --text: #191f28;
   --muted: #8b95a1;
@@ -13,28 +15,6 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--white);
-  color: var(--text);
-  font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-main {
-  display: grid;
-  gap: 0;
-  margin: 0 auto;
-  max-width: 1040px;
-  padding: 32px 20px 64px;
-}
-
-.app-header {
-  border-bottom: 1px solid var(--line);
-  padding: 0 0 28px;
-}
-
 .app-header h1 {
   font-size: 28px;
   letter-spacing: -0.04em;
@@ -44,10 +24,6 @@ main {
 .app-header p,
 small {
   color: var(--muted);
-}
-
-.app-header p {
-  margin: 8px 0 0;
 }
 
 section {
@@ -114,18 +90,10 @@ section h2 {
   margin: 8px 0;
 }
 
-.key-times {
-  display: flex;
-  gap: 28px;
-  margin: 0 0 24px;
-}
-
 .key-time {
   font-variant-numeric: tabular-nums;
   font-size: 32px;
   font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.2;
 }
 
 .key-time.accent,
@@ -223,17 +191,6 @@ input[type="number"] {
   font-weight: 600;
 }
 
-.trip-option {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  margin: 12px 0;
-}
-
-.trip-option input {
-  accent-color: var(--accent);
-}
-
 .trip-option-text {
   display: flex;
   flex: 1;
@@ -250,22 +207,8 @@ input[type="number"] {
   color: #d97706;
 }
 
-.trip-option-kind {
-  color: var(--muted);
-  white-space: nowrap;
-}
-
 .trip-option-kind.recommended {
   font-weight: 600;
-}
-
-.status-badge {
-  color: var(--danger);
-  font-weight: 500;
-}
-
-.status-badge.prev-day {
-  color: var(--muted);
 }
 
 #alarm-list {
@@ -361,14 +304,6 @@ textarea {
   padding: 24px 0;
 }
 
-#week-registration summary,
-#route-registration summary {
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: 600;
-  list-style-position: outside;
-}
-
 #week-registration section {
   border-bottom: 0;
   padding: 20px 0 0;
@@ -401,10 +336,6 @@ textarea {
   margin: 0;
 }
 
-#routes-list p {
-  color: var(--muted);
-}
-
 .route-actions {
   display: flex;
   gap: 8px;
@@ -415,42 +346,6 @@ textarea {
   padding: 8px 14px;
 }
 
-@media (max-width: 899px) {
-  main {
-    padding: 24px 16px 48px;
-  }
-
-}
-
-@media (max-width: 600px) {
-  main {
-    padding: 20px 14px 40px;
-  }
-
-  section {
-    padding: 24px 0;
-  }
-
-  .key-times {
-    gap: 20px;
-  }
-
-  .key-time {
-    font-size: 32px;
-  }
-
-  .trip-option-text {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .week-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* 선택한 요일만 표시하는 계획 화면 */
 #day-tabs {
   display: grid;
   gap: 4px;
@@ -479,9 +374,6 @@ textarea {
 
 #selected-plan {
   display: grid;
-  gap: 32px 48px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-width: 0;
 }
 
 #selected-plan > .plan-card {
@@ -492,10 +384,6 @@ textarea {
 .selected-plan-choices {
   min-width: 0;
   word-break: keep-all;
-}
-
-.selected-plan-main {
-  grid-column: 1;
 }
 
 .selected-plan-choices {
@@ -518,9 +406,6 @@ textarea {
 
 #selected-plan > #alarm-list {
   border-bottom: 0;
-  grid-column: 2;
-  grid-row: 2;
-  min-width: 0;
   padding: 0;
 }
 
@@ -535,43 +420,21 @@ textarea {
   word-break: keep-all;
 }
 
-@media (max-width: 899px) {
-  #selected-plan {
-    display: block;
-  }
-
-  #selected-plan > .plan-card {
-    display: block;
-  }
-
-  .selected-plan-choices {
-    margin-top: 24px;
-  }
-
-  #selected-plan > #alarm-list {
-    border-bottom: 1px solid var(--line);
-    margin-top: 24px;
-    padding-bottom: 18px;
-  }
-
-  #selected-plan > #download-ics {
-    margin-top: 20px;
-  }
-}
-
-/* 전체 레이아웃: 제목, 왼쪽 설정 패널, 오른쪽 계획 */
 main {
+  display: grid;
+  gap: 0;
+  margin: 0 auto;
   max-width: 1440px;
   padding: 24px 32px 48px;
   grid-template-columns: 420px minmax(0, 1fr);
-  grid-template-areas:
-    "header header"
-    "panel plan";
+  grid-template-areas: "header header" "panel plan";
   column-gap: 40px;
   align-items: start;
 }
 
 .app-header {
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 28px;
   grid-area: header;
 }
 
@@ -650,40 +513,34 @@ main > .plan-section {
 }
 
 #selected-plan {
+  gap: 32px 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
   grid-template-rows: auto auto 1fr;
   row-gap: 24px;
   align-items: start;
 }
 
 .selected-plan-main {
+  grid-column: 1;
   grid-row: 1 / span 3;
 }
 
 #selected-plan > #alarm-list {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
   border-top: 1px solid var(--line);
   padding-top: 16px;
 }
 
-@media (max-width: 899px) {
-  main {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "header"
-      "plan"
-      "panel";
-    padding: 20px 16px 40px;
-  }
-
-  .side-panel {
-    position: static;
-    max-height: none;
-    overflow: visible;
-    margin-top: 0;
-  }
-}
-
-/* 휴대폰 화면 보완: 한글 줄바꿈, 열차 후보, 보조 버튼, 더 보기 */
 body {
+  margin: 0;
+  background: var(--white);
+  color: var(--text);
+  font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   word-break: keep-all;
   overflow-wrap: break-word;
 }
@@ -708,6 +565,7 @@ small {
 }
 
 .trip-option input {
+  accent-color: var(--accent);
   height: 18px;
   margin: 0;
   width: 18px;
@@ -733,6 +591,8 @@ small {
 }
 
 .trip-option-kind {
+  color: var(--muted);
+  white-space: nowrap;
   font-size: 13px;
   text-align: right;
 }
@@ -778,6 +638,8 @@ button.secondary.danger {
 
 #week-registration summary,
 #route-registration summary {
+  cursor: pointer;
+  font-weight: 600;
   color: var(--text);
   font-size: 15px;
   list-style-position: inside;
@@ -789,31 +651,22 @@ button.secondary.danger {
 }
 
 #routes-list p {
+  color: var(--muted);
   font-size: 14px;
   margin: 4px 0 10px;
 }
 
-@media (max-width: 600px) {
-  .app-header h1 {
-    font-size: 24px;
-  }
-
-  .key-time {
-    font-size: 28px;
-  }
-
-  .trip-option {
-    gap: 10px;
-  }
-}
-
 .key-time {
+  letter-spacing: -0.04em;
+  line-height: 1.2;
   display: grid;
   gap: 4px;
   margin: 0;
 }
 
 .key-times {
+  display: flex;
+  margin: 0 0 24px;
   gap: 40px;
 }
 
@@ -825,30 +678,15 @@ button.secondary.danger {
 }
 
 .app-header p {
+  margin: 8px 0 0;
   text-wrap: balance;
 }
 
-@media (max-width: 600px) {
-  .key-times {
-    gap: 40px;
-  }
-
-  .side-panel .week-row {
-    grid-template-columns: minmax(0, 1fr) 132px;
-  }
-}
-
 .route-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }
 
-.route-actions button:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-/* 구간별 시간 막대 */
 .time-bar-wrap {
   border-top: 1px solid var(--line);
   margin: 0 0 8px;
@@ -958,12 +796,6 @@ button.secondary.danger {
   z-index: 1;
 }
 
-@media (max-width: 600px) {
-  .time-bar-label {
-    font-size: 11px;
-  }
-}
-
 .time-bar-label.walk,
 .time-bar-label.wait,
 .time-bar-label.slack {
@@ -979,4 +811,73 @@ button.secondary.danger {
 .time-bar-late {
   color: var(--danger);
   font-weight: 600;
+}
+
+/* 태블릿·휴대폰 (899px 이하): 한 줄로 쌓기 */
+@media (max-width: 899px) {
+  #selected-plan {
+    display: block;
+  }
+
+  #selected-plan > .plan-card {
+    display: block;
+  }
+
+  .selected-plan-choices {
+    margin-top: 24px;
+  }
+
+  #selected-plan > #alarm-list {
+    border-bottom: 1px solid var(--line);
+    margin-top: 24px;
+    padding-bottom: 18px;
+  }
+
+  #selected-plan > #download-ics {
+    margin-top: 20px;
+  }
+
+  main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "header" "plan" "panel";
+    padding: 20px 16px 40px;
+  }
+
+  .side-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    margin-top: 0;
+  }
+}
+
+/* 휴대폰 (600px 이하): 글자·간격 줄이기 */
+@media (max-width: 600px) {
+  section {
+    padding: 24px 0;
+  }
+
+  .app-header h1 {
+    font-size: 24px;
+  }
+
+  .key-time {
+    font-size: 28px;
+  }
+
+  .trip-option {
+    gap: 10px;
+  }
+
+  .key-times {
+    gap: 40px;
+  }
+
+  .side-panel .week-row {
+    grid-template-columns: minmax(0, 1fr) 132px;
+  }
+
+  .time-bar-label {
+    font-size: 11px;
+  }
 }

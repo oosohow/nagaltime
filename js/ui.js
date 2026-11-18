@@ -1,8 +1,8 @@
 // 화면 표시와 사용자 이벤트를 담당하는 파일입니다.
 
+// 지금 수정 중인 경로의 id (수정 중이 아니면 null)
 let editingRouteId = null;
 
-const UI_DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const UI_DAY_LABELS = {
     mon: '월요일',
     tue: '화요일',
@@ -12,8 +12,10 @@ const UI_DAY_LABELS = {
     sat: '토요일',
     sun: '일요일'
 };
-let selectedPlanDayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+// 계획 화면에서 선택한 요일. 처음에는 오늘 요일 (getDay는 일요일이 0이라 월요일 시작으로 맞춤)
+let selectedPlanDayKey = DAY_KEYS[(new Date().getDay() + 6) % 7];
 
+// 저장된 요일 계획을 계산해 캘린더(.ics) 파일로 내려받습니다.
 function handleIcsDownload() {
     const routes = loadRoutes();
     const week = loadWeek();
@@ -21,6 +23,7 @@ function handleIcsDownload() {
     downloadIcs(buildIcs(plans, routes));
 }
 
+// 계획 카드에 오류 문구 한 줄을 표시합니다.
 function renderPlanError(card, message) {
     const error = document.createElement('p');
     error.className = 'plan-error';
@@ -28,6 +31,7 @@ function renderPlanError(card, message) {
     card.appendChild(error);
 }
 
+// 다른 열차 후보(여유·추천·빠듯·지각)를 라디오 목록으로 그리고, 고르면 요일별로 저장합니다.
 function renderTripOptions(card, result, dayKey) {
     if (!result.options || result.options.length === 0) return;
 
@@ -150,6 +154,7 @@ function renderTimeBar(result, lineColors) {
     return wrapper;
 }
 
+// 추천 경로면 시간 막대·이동 타임라인·열차 후보를, 직접 입력 경로면 탈 열차·도착 예상·여유를 그립니다.
 function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
     if (route.type === 'trip') {
         const flow = document.createElement('div');
@@ -226,6 +231,7 @@ function renderPlanDetails(card, result, route, dayKey, choiceCard = card) {
     });
 }
 
+// 선택한 열차 종류(여유·빠듯·지각)에 맞는 안내 문장을 만듭니다.
 function buildPlanHint(result, route) {
     const firstLeg = result.legs && result.legs[0];
     const trainText = route.type === 'trip' && firstLeg
@@ -240,6 +246,7 @@ function buildPlanHint(result, route) {
     return `${toHHMM(result.depart)}에 나가면 ${trainText} 여유 있게 탈 수 있어요`;
 }
 
+// 선택한 요일의 계획 카드(일어나기·출발 시간, 안내 문장, 상세 내용)를 만듭니다.
 function renderPlanCard(dayKey, week, routes, plans) {
     const card = document.createElement('article');
     card.className = 'plan-card today';
@@ -300,6 +307,7 @@ function renderPlanCard(dayKey, week, routes, plans) {
     return card;
 }
 
+// 요일 탭, 선택한 요일의 계획, 알람 목록, 캘린더 버튼을 다시 그립니다.
 function renderPlan() {
     const tabs = document.getElementById('day-tabs');
     const selectedPlan = document.getElementById('selected-plan');
@@ -308,10 +316,10 @@ function renderPlan() {
     const routes = loadRoutes();
     const week = loadWeek();
     const plans = calcWeek(routes, week, []);
-    if (!UI_DAY_KEYS.includes(selectedPlanDayKey)) selectedPlanDayKey = UI_DAY_KEYS[0];
+    if (!DAY_KEYS.includes(selectedPlanDayKey)) selectedPlanDayKey = DAY_KEYS[0];
 
     tabs.replaceChildren();
-    UI_DAY_KEYS.forEach((dayKey) => {
+    DAY_KEYS.forEach((dayKey) => {
         const tab = document.createElement('button');
         tab.type = 'button';
         tab.className = `day-tab${dayKey === selectedPlanDayKey ? ' active' : ''}`;
@@ -328,7 +336,7 @@ function renderPlan() {
     selectedPlan.replaceChildren();
     selectedPlan.appendChild(renderPlanCard(selectedPlanDayKey, week, routes, plans));
     selectedPlan.appendChild(alarmList);
-    const plannedDays = UI_DAY_KEYS.filter((dayKey) => plans[dayKey] && plans[dayKey].ok);
+    const plannedDays = DAY_KEYS.filter((dayKey) => plans[dayKey] && plans[dayKey].ok);
     calendarButton.disabled = plannedDays.length === 0;
     calendarButton.textContent = plannedDays.length === 0
         ? '이번 주에 보낼 알람이 없어요'
@@ -337,6 +345,7 @@ function renderPlan() {
     renderAlarmList(routes, week, plans, selectedPlanDayKey);
 }
 
+// 선택한 요일의 기상·출발 알림·출발 시각을 시간순으로 보여 줍니다.
 function renderAlarmList(routes, week, plans, dayKey) {
     const list = document.getElementById('alarm-list');
     list.replaceChildren();
@@ -372,16 +381,19 @@ function renderAlarmList(routes, week, plans, dayKey) {
     });
 }
 
+// 경로 등록 폼의 오류 문구를 모두 지웁니다.
 function clearErrors() {
     document.querySelectorAll('.field-error').forEach((element) => {
         element.textContent = '';
     });
 }
 
+// 입력칸 아래 오류 문구를 표시합니다.
 function showError(id, message) {
     document.getElementById(id).textContent = message;
 }
 
+// 왼쪽 패널의 탭(요일별 도착 시간 / 경로 등록)을 바꿉니다.
 function showPanel(panelId) {
     document.querySelectorAll('.panel-tab').forEach((tab) => {
         const active = tab.dataset.panel === panelId;
@@ -406,6 +418,7 @@ function formatTripRoute(route) {
         : `${route.fromStation} → ${route.toStation}`;
 }
 
+// 저장된 경로 목록을 수정·삭제 버튼과 함께 그립니다.
 function renderRoutes() {
     const list = document.getElementById('routes-list');
     const routes = loadRoutes();
@@ -452,6 +465,7 @@ function renderRoutes() {
     });
 }
 
+// 요일마다 경로 선택칸과 도착 시간 입력칸을 그리고, 바꾸면 바로 저장합니다.
 function renderWeekInputs() {
     const container = document.getElementById('week-inputs');
     const emptyMessage = document.getElementById('week-empty-message');
@@ -462,7 +476,7 @@ function renderWeekInputs() {
     emptyMessage.hidden = routes.length > 0;
     if (routes.length === 0) return;
 
-    UI_DAY_KEYS.forEach((dayKey) => {
+    DAY_KEYS.forEach((dayKey) => {
         const row = document.createElement('div');
         row.className = 'week-row';
 
@@ -509,6 +523,7 @@ function renderWeekInputs() {
     });
 }
 
+// 열차 데이터에 있는 모든 역 이름을 가나다순으로 돌려줍니다.
 function getTripStationNames() {
     const stations = new Set();
     ['weekday', 'holiday'].forEach((dayType) => {
@@ -519,16 +534,14 @@ function getTripStationNames() {
     return [...stations].sort();
 }
 
+// 등록 방식(열차 추천 / 직접 입력)에 맞는 입력칸만 보여 줍니다.
 function toggleRouteTypeFields() {
     const isTrip = document.getElementById('route-type').value === 'trip';
     document.getElementById('custom-fields').hidden = isTrip;
     document.getElementById('trip-fields').hidden = !isTrip;
 }
 
-function readTripNumber(inputId, errorId, label) {
-    return readNonNegativeNumber(inputId, errorId, label);
-}
-
+// 숫자 입력칸 값을 읽어 0 이상의 숫자면 돌려주고, 아니면 오류 문구를 표시하고 null을 돌려줍니다.
 function readNonNegativeNumber(inputId, errorId, label) {
     const rawValue = document.getElementById(inputId).value.trim();
     const value = Number(rawValue);
@@ -539,6 +552,7 @@ function readNonNegativeNumber(inputId, errorId, label) {
     return value;
 }
 
+// 경로 등록 폼을 처음 상태로 되돌리고 수정 상태를 끝냅니다.
 function resetRouteForm() {
     editingRouteId = null;
     const form = document.getElementById('route-form');
@@ -552,6 +566,7 @@ function resetRouteForm() {
     toggleRouteTypeFields();
 }
 
+// 저장된 경로 값을 폼에 채워 수정 상태로 바꿉니다.
 function startRouteEdit(route) {
     editingRouteId = route.id;
     const form = document.getElementById('route-form');
@@ -582,6 +597,7 @@ function startRouteEdit(route) {
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// 경로 폼 값을 검사해 새로 저장하거나(등록) 기존 경로를 바꿉니다(수정).
 function handleRouteSubmit(event) {
     event.preventDefault();
     clearErrors();
@@ -645,7 +661,7 @@ function handleRouteSubmit(event) {
             ['trip-prep-min', 'trip-prep-error', '일어나서 나가기까지 시간'],
             ['trip-slack-min', 'trip-slack-error', '최소 여유'],
             ['trip-transfer-min', 'trip-transfer-error', '환승 시간']
-        ].map(([inputId, errorId, label]) => readTripNumber(inputId, errorId, label));
+        ].map(([inputId, errorId, label]) => readNonNegativeNumber(inputId, errorId, label));
         if (tripValues.some((value) => value === null)) valid = false;
     }
     if (!valid) return;
@@ -681,7 +697,19 @@ function handleRouteSubmit(event) {
     showPanel('week-registration');
 }
 
+// 시간·숫자 입력칸에 커서가 있을 때 마우스 휠을 굴리면 값이 바뀌지 않고 화면만 스크롤되게 합니다.
+function preventWheelChange(event) {
+    const input = event.target;
+    if (input instanceof HTMLInputElement
+        && (input.type === 'time' || input.type === 'number')
+        && document.activeElement === input) {
+        input.blur();
+    }
+}
+
+// 역 목록을 채우고 버튼·폼 이벤트를 연결한 뒤 처음 화면을 그립니다.
 function bindRouteEvents() {
+    document.addEventListener('wheel', preventWheelChange, { passive: true });
     const stationList = document.getElementById('trip-stations');
     getTripStationNames().forEach((station) => {
         stationList.appendChild(new Option(station, station));

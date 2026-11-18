@@ -145,7 +145,7 @@ function calcWeek(routes, week, holidays) {
     const weekPlan = week || {};
     const holidayList = Array.isArray(holidays) ? holidays : [];
 
-    for (const dayKey of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) {
+    for (const dayKey of DAY_KEYS) {
         const dayPlan = weekPlan[dayKey];
         if (!dayPlan) {
             results[dayKey] = null;
@@ -285,14 +285,6 @@ function collectTrips(trips, fromStation, toStation, transferMin) {
         ...trip,
         legs: trip.legs.map((leg) => ({ ...leg }))
     }));
-}
-
-// 테스트에서 사용하는 호환용 추천 함수로, 마감 전 경로를 최대 3개 반환합니다.
-function findTrips(trips, fromStation, toStation, deadlineMin, transferMin) {
-    return collectTrips(trips, fromStation, toStation, transferMin)
-        .filter((trip) => trip.arr <= deadlineMin)
-        .sort((first, second) => second.dep - first.dep || first.arr - second.arr)
-        .slice(0, 3);
 }
 
 // 사용자가 입력한 역 이름을 데이터의 역 이름으로 바꿉니다. '신촌역'→'신촌', '서울'→'서울역'처럼 '역'이 붙거나 빠져도 찾고, 없으면 null을 반환합니다.
