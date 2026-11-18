@@ -99,7 +99,8 @@ function toMinutes(value) {
     const hours = Number(compact.slice(0, 2));
     const minutes = Number(compact.slice(2, 4));
     const seconds = Number(compact.slice(4, 6));
-    if (hours > 23 || minutes > 59 || seconds > 59) return null;
+    // 서울 열린데이터는 자정을 넘긴 시각을 24:01:00처럼 적으므로 29시까지 받음 (1440 이상 = 다음 날 새벽)
+    if (hours > 29 || minutes > 59 || seconds > 59) return null;
     return hours * 60 + minutes;
 }
 
@@ -203,11 +204,12 @@ function buildTrips(rawData) {
     return result;
 }
 
-function buildSeoulLine2WeekendTrips(rawData) {
+// 서울 열린데이터 2호선 시간표(dayName: '평일' 또는 '주말')를 열차별로 묶습니다.
+function buildSeoulLine2Trips(rawData, dayName) {
     const groups = new Map();
     for (const [key, rows] of Object.entries(rawData || {})) {
-        const [dayName, direction] = key.split('|');
-        if (dayName !== '주말' || !['내선', '외선'].includes(direction)) continue;
+        const [rowDay, direction] = key.split('|');
+        if (rowDay !== dayName || !['내선', '외선'].includes(direction)) continue;
 
         for (const row of rows || []) {
             const trainNo = row && row.trainno;
@@ -242,18 +244,77 @@ function buildSeoulLine2WeekendTrips(rawData) {
     return trips;
 }
 
-function writeTrips(kricTrips, seoulLine2Trips, filePath) {
-    const merged = { weekday: [...kricTrips.weekday], holiday: [] };
-    merged.holiday.push(
-        ...kricTrips.holiday.filter((trip) => trip.line !== '2호선'),
-        ...seoulLine2Trips,
-    );
-    merged.weekday = merged.weekday.map(renameSeparateStations);
-    merged.holiday = merged.holiday.map(renameSeparateStations);
+// 두 역 사이 시간이 다른 열차들과 크게 다른지 (시각 오타처럼 15분 넘게 어긋날 때만. 급행 차이와 몇 분 오차는 허용)
+function isOffTime(minutes, median) {
+    return Math.abs(minutes - median) > Math.max(15, median * 0.5);
+}
+
+// 노선별로 두 역 사이 걸린 시간(가까운 6개 역까지)의 중앙값을 구합니다.
+function buildMedianTimes(trips) {
+    const samples = new Map();
+    for (const trip of trips) {
+        trip.stops.forEach(([from, fromMin], i) => {
+            for (let j = i + 1; j < Math.min(trip.stops.length, i + 7); j += 1) {
+                const key = `${trip.line}|${from}|${trip.stops[j][0]}`;
+                if (!samples.has(key)) samples.set(key, []);
+                samples.get(key).push(trip.stops[j][1] - fromMin);
+            }
+        });
+    }
+    const medians = new Map();
+    for (const [key, values] of samples) {
+        if (values.length < 2) continue;
+        values.sort((a, b) => a - b);
+        medians.set(key, values[Math.floor(values.length / 2)]);
+    }
+    return medians;
+}
+
+// 앞 정차역 3개와 비교해 이 역을 이어 붙여도 되는지 봅니다. 비교할 기록이 없거나 하나라도 어긋나면 안 됨.
+function fitsAfter(line, chain, [station, minute], medians) {
+    let known = 0;
+    for (const [from, fromMin] of chain.slice(-3)) {
+        const median = medians.get(`${line}|${from}|${station}`);
+        if (median === undefined) continue;
+        if (isOffTime(minute - fromMin, median)) return false;
+        known += 1;
+    }
+    return known > 0;
+}
+
+// 원본 오류(시각 오타, 같은 번호 열차 섞임)를 정리합니다.
+// 정차역을 시각순으로 보며 시간이 맞는 구간끼리 이어 붙이고, 역이 1개뿐인 구간(시각 오타)은 버립니다.
+function cleanTrips(trips) {
+    const medians = buildMedianTimes(trips.filter((trip) => !LOOP_LINES.includes(trip.line)));
+    const cleaned = [];
+    const changed = [];
+    for (const trip of trips) {
+        if (LOOP_LINES.includes(trip.line)) {
+            cleaned.push(trip);
+            continue;
+        }
+        const chains = [];
+        for (const stop of trip.stops) {
+            const chain = chains.find((candidate) => fitsAfter(trip.line, candidate, stop, medians));
+            if (chain) chain.push(stop);
+            else chains.push([stop]);
+        }
+        const kept = chains.filter((chain) => chain.length >= 2);
+        if (chains.length > 1) {
+            const removed = chains.filter((chain) => chain.length < 2).map((chain) => chain[0][0]);
+            changed.push(`${trip.line} ${trip.no}: ${kept.length}개 구간${removed.length ? `, 뺀 역 ${removed.join(', ')}` : ''}`);
+        }
+        kept.forEach((stops) => cleaned.push({ ...trip, stops }));
+    }
+    return { trips: cleaned, changed };
+}
+
+// 2호선은 서울 열린데이터(지선 포함)를 쓰고, 나머지는 레일포털 데이터를 씁니다.
+function writeTrips(merged, filePath) {
 
     const header = [
         '// 열차별 정차 시각 데이터 (열차 추천·환승 계산용)',
-        '// 레일포털 열차 시각표와 서울 열린데이터(2호선 주말)를 합친 파일입니다.',
+        '// 레일포털 열차 시각표와 서울 열린데이터(2호선)를 합친 파일입니다.',
         '// 모양: TRIPS[weekday|holiday] = [{ no: 열차번호, line: 노선, stops: [[역 이름, 분], ...] }, ...]',
         '// - 분은 자정부터의 분. 자정을 넘긴 열차는 1440 이상으로 이어서 적습니다.',
         '// - 토요일·일요일·공휴일은 holiday 사용합니다.',
@@ -268,19 +329,6 @@ function writeTrips(kricTrips, seoulLine2Trips, filePath) {
     return merged;
 }
 
-function findDuplicateStations(trips) {
-    return trips
-        .map((trip) => {
-            const counts = new Map();
-            trip.stops.forEach(([station]) => counts.set(station, (counts.get(station) || 0) + 1));
-            const duplicates = [...counts.entries()]
-                .filter(([, count]) => count > 1)
-                .map(([station, count]) => `${station}(${count})`);
-            return duplicates.length > 0 ? `${trip.line} ${trip.no}: ${duplicates.join(', ')}` : null;
-        })
-        .filter(Boolean);
-}
-
 function printLineCounts(trips) {
     const counts = new Map();
     trips.forEach((trip) => counts.set(trip.line, (counts.get(trip.line) || 0) + 1));
@@ -289,27 +337,39 @@ function printLineCounts(trips) {
         .forEach(([line, count]) => console.log(`  ${line}: ${count}개`));
 }
 
+// 레일포털 열차와 서울 열린데이터 2호선 열차를 요일별로 모읍니다.
+function mergeTrips(kricTrips, seoulData) {
+    const merged = {};
+    for (const [dayType, dayName] of [['weekday', '평일'], ['holiday', '주말']]) {
+        const seoulTrips = buildSeoulLine2Trips(seoulData, dayName);
+        // 서울 열린데이터가 없으면 레일포털 2호선을 그대로 씀 (레일포털 평일 2호선에는 지선이 없음)
+        const kric = seoulTrips.length > 0
+            ? kricTrips[dayType].filter((trip) => trip.line !== '2호선')
+            : kricTrips[dayType];
+        merged[dayType] = [...kric, ...seoulTrips].map(renameSeparateStations);
+    }
+    return merged;
+}
+
 function main() {
     const rawData = readInput(INPUT);
-    const seoulLine2Data = readOptionalInput(SEOUL_LINE2_INPUT);
-    const kricTrips = buildTrips(rawData);
-    const seoulLine2Trips = buildSeoulLine2WeekendTrips(seoulLine2Data);
-    const merged = writeTrips(kricTrips, seoulLine2Trips, OUTPUT);
+    const seoulData = readOptionalInput(SEOUL_LINE2_INPUT);
+    const merged = mergeTrips(buildTrips(rawData), seoulData);
+
+    for (const dayType of ['weekday', 'holiday']) {
+        const result = cleanTrips(merged[dayType]);
+        merged[dayType] = result.trips;
+        console.log(`${dayType} 원본 오류 정리: ${result.changed.length}개 열차`);
+        result.changed.forEach((item) => console.log(`  ${item}`));
+    }
+    writeTrips(merged, OUTPUT);
 
     console.log(`완료: ${OUTPUT}`);
-    console.log(`추가한 열차: 평일 ${kricTrips.weekday.length}개, 휴일 ${kricTrips.holiday.length - kricTrips.holiday.filter((trip) => trip.line === '2호선').length + seoulLine2Trips.length}개`);
-    console.log(`2호선 서울 열린데이터 휴일 열차: ${seoulLine2Trips.length}개`);
     console.log(`전체 열차: 평일 ${merged.weekday.length}개, 휴일 ${merged.holiday.length}개`);
     console.log('노선별 열차 수 (weekday):');
     printLineCounts(merged.weekday);
     console.log('노선별 열차 수 (holiday):');
     printLineCounts(merged.holiday);
-    for (const dayType of ['weekday', 'holiday']) {
-        const duplicates = findDuplicateStations(kricTrips[dayType]);
-        console.log(`${dayType} 2·7호선 중복 역 열차: ${duplicates.length}개`);
-        duplicates.slice(0, 10).forEach((item) => console.log(`  ${item}`));
-        if (duplicates.length > 10) console.log(`  ... 외 ${duplicates.length - 10}개`);
-    }
 }
 
 try {
