@@ -342,8 +342,8 @@ test(
         prepMin: 0,
         slackMin: 5,
         transferMin: 4
-    }, '08:48', 'weekday', 'K5025').train,
-    460
+    }, '08:48', 'weekday', 'K2207').train,
+    457
 );
 
 test(
