@@ -592,6 +592,34 @@ test(
     { hasRoute: true, transferAtSinchon: false }
 );
 
+// 중간고사 계획서 4장 신뢰성 기준: 빈칸·0분 입력에도 계산이 멈추지 않아야 함
+test(
+    '43. 빈칸 입력 (도착 시간·열차 시각이 비어 있음)',
+    {
+        arrive: calcPlan(testRoute, '', 'weekday'),
+        times: calcPlan({ ...testRoute, customTimes: [] }, '09:00', 'weekday')
+    },
+    {
+        arrive: { ok: false, message: '도착 시간을 HH:MM 형식으로 입력해 주세요.' },
+        times: { ok: false, message: '열차 시각을 입력해 주세요.' }
+    }
+);
+
+test(
+    '44. 0분 입력 (도보·준비·최소 여유가 모두 0분)',
+    (() => {
+        const plan = calcPlan({ ...testRoute, walkMin: 0, prepMin: 0, slackMin: 0 }, '09:00', 'weekday');
+        return { ok: plan.ok, train: toHHMM(plan.train), depart: toHHMM(plan.depart), wake: toHHMM(plan.wake) };
+    })(),
+    { ok: true, train: '08:07', depart: '08:07', wake: '08:07' }
+);
+
+test(
+    '45. 음수 입력 (도보 -5분)',
+    calcPlan({ ...testRoute, walkMin: -5 }, '09:00', 'weekday'),
+    { ok: false, message: '경로 시간 설정은 0 이상의 숫자여야 합니다.' }
+);
+
 const passedCount = testResults.filter((result) => result.passed).length;
 document.getElementById('summary').textContent =
     `${testResults.length}개 중 ${passedCount}개 통과`;
