@@ -483,7 +483,7 @@ Copilot이 직접 작성한 커밋에는 `Co-authored-by: Copilot` 표시가 남
 │   ├── fetch_kric.py       # 레일포털 API에서 시간표 받기
 │   ├── fetch_seoul.py      # 서울 열린데이터광장 API에서 2호선 시간표 받기
 │   └── merge_kric.js       # 받은 시간표로 trips.js 만들기
-├── docs/                   # 기말 안내서, API 문서, 스크린샷 (docs/README.md 참고)
+├── docs/                   # API 문서, 스크린샷 (docs/README.md 참고)
 └── .github/
     └── copilot-instructions.md  # Copilot 작업 지침
 ```
