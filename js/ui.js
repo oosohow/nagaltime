@@ -238,7 +238,7 @@ function buildPlanHint(result, route) {
         ? `${toHHMM(result.train)} ${firstLeg.from} ${firstLeg.line}을`
         : `${toHHMM(result.train)} 열차를`;
     if (result.kind === 'late') {
-        return `${toHHMM(result.depart)}에 나가면 ${trainText} 타는데 ${result.lateMin}분 늦어요`;
+        return `${toHHMM(result.depart)}에 나가서 ${trainText} 타면 목적지에 ${result.lateMin}분 늦게 도착해요`;
     }
     if (result.kind === 'tight') {
         return `${toHHMM(result.depart)}에 나가면 ${trainText} 탈 수 있지만 빠듯해요`;
