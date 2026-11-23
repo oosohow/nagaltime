@@ -369,7 +369,7 @@ function renderAlarmList(routes, week, plans, dayKey) {
     list.appendChild(summary);
     [
         ['기상', result.wake],
-        ['출발 알림', result.alert],
+        ['출발 10분 전 알림', result.alert],
         ['출발', result.depart]
     ].sort((first, second) => first[1] - second[1]).forEach(([name, minute]) => {
         const alarm = document.createElement('p');
